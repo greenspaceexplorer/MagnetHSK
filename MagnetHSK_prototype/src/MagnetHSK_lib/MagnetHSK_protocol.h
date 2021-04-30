@@ -22,12 +22,12 @@
 typedef enum MagnetHSK_cmd {
   // 2-248 are board-specific: these are test commands
   // 2-8 are resistance readings
-  eResistanceCh3 = 0x02, // bottom stack side
-  eResistanceCh6 = 0x03, // bottom non-stack side
-  eResistanceCh9 = 0x04, // top stack side
-  eResistanceCh12 = 0x05, // top non-stack side
-  eResistanceCh16 = 0x06, // shield sensor #1
-  eResistanceCh20 = 0x07, // shield sensor #2
+  eResistanceCh3 = 0x02,
+  eResistanceCh6 = 0x03,
+  eResistanceCh9 = 0x04,
+  eResistanceCh12 = 0x05,
+  eResistanceCh16 = 0x06,
+  eResistanceCh20 = 0x07,
   // 9-15 are temperature readings
   eTempCh3 = 0x08,
   eTempCh6 = 0x09,
@@ -36,16 +36,8 @@ typedef enum MagnetHSK_cmd {
   eTempCh16 = 0x0C,
   eTempCh20 = 0x0D,
   // 16-18 are flow readings
-  eWhisperVflow1 = 0x0E,
-  eWhisperMflow1 = edit,
-  eWhisperTemp1  = edit,
-  eWhisperPress1 = edit,
-
-  eWhisperVflow2 = 0x0E,
-  eWhisperMflow2 = edit,
-  eWhisperTemp2  = edit,
-  eWhisperPress2 = edit,
-
+  eFlow1 = 0x0E,
+  eFlow2 = 0x0F,
   // 16-25 are read temperature probes
   eTempProbe1 = 0x10,
   eTempProbe2 = 0x11,
