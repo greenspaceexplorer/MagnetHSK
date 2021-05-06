@@ -1,0 +1,8 @@
+{
+    "name":"HSK-main",
+    "version":"1.0.0",
+    "repository":{
+        "type":"git",
+        "url":"https://github.com/helix-project/HSK-main"
+    }
+}

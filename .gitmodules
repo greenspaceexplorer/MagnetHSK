@@ -1,0 +1,3 @@
+[submodule "lib/HSK-main"]
+	path = lib/HSK-main
+	url = git@github.com:helix-project/HSK-main.git

@@ -1,0 +1,117 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
+{
+    "configurations": [
+        {
+            "name": "PlatformIO",
+            "includePath": [
+                "/Users/noahgreen/Documents/GitHub/MagnetHSK/include",
+                "/Users/noahgreen/Documents/GitHub/MagnetHSK/src",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/system",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/system/inc",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/system/driverlib",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/cores/tivac",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/variants/EK-TM4C123GXL",
+                "/Users/noahgreen/Documents/GitHub/MagnetHSK/lib/Core_protocol",
+                "/Users/noahgreen/Documents/GitHub/MagnetHSK/lib/HSK-main/src",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/AIR430BoostEuropeETSI",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/AIR430BoostEuropeETSI/utility",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/AIR430BoostUSAFCC",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/AIR430BoostUSAFCC/utility",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/Adafruit_TMP006",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/Adafruit_TMP007",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/CogLCD",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/EEPROM",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/EduBPMKII_Screen",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/Ethernet",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/Ethernet/utility",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/LCD_SharpBoosterPack_SPI",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/M2XStreamClient",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/MQTTClient",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/OPT3001",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/OneMsTaskTimer",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/OneWire",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/PubNub",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/PubSubClient",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/SPI",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/Servo",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/Temboo",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/Temboo/utility",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/WiFi",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/WiFi/utility",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/Wire",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/aJson",
+                "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/aJson/utility",
+                ""
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "/Users/noahgreen/Documents/GitHub/MagnetHSK/include",
+                    "/Users/noahgreen/Documents/GitHub/MagnetHSK/src",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/system",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/system/inc",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/system/driverlib",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/cores/tivac",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/variants/EK-TM4C123GXL",
+                    "/Users/noahgreen/Documents/GitHub/MagnetHSK/lib/Core_protocol",
+                    "/Users/noahgreen/Documents/GitHub/MagnetHSK/lib/HSK-main/src",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/AIR430BoostEuropeETSI",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/AIR430BoostEuropeETSI/utility",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/AIR430BoostUSAFCC",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/AIR430BoostUSAFCC/utility",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/Adafruit_TMP006",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/Adafruit_TMP007",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/CogLCD",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/EEPROM",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/EduBPMKII_Screen",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/Ethernet",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/Ethernet/utility",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/LCD_SharpBoosterPack_SPI",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/M2XStreamClient",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/MQTTClient",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/OPT3001",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/OneMsTaskTimer",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/OneWire",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/PubNub",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/PubSubClient",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/SPI",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/Servo",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/Temboo",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/Temboo/utility",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/WiFi",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/WiFi/utility",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/Wire",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/aJson",
+                    "/Users/noahgreen/.platformio/packages/framework-energiativa/libraries/aJson/utility",
+                    ""
+                ]
+            },
+            "defines": [
+                "F_CPU=80000000L",
+                "PLATFORMIO=50101",
+                "ENERGIA_ARCH_TIVAC",
+                "ENERGIA_EK_TM4C123GXL",
+                "ARDUINO=10805",
+                "ENERGIA=10002",
+                "printf=iprintf",
+                ""
+            ],
+            "cStandard": "c11",
+            "cppStandard": "c++11",
+            "compilerPath": "/Users/noahgreen/.platformio/packages/toolchain-gccarmnoneeabi/bin/arm-none-eabi-gcc",
+            "compilerArgs": [
+                "-mthumb",
+                "-mcpu=cortex-m4",
+                "-mfloat-abi=hard",
+                "-mfpu=fpv4-sp-d16",
+                "-mabi=aapcs",
+                ""
+            ]
+        }
+    ],
+    "version": 4
+}
