@@ -21,9 +21,3 @@ example/obj
 # Win
 *.exe
 *.dll
-
-# VS Code
-.vscode
-
-# Obsidian Notes
-.obsidian
