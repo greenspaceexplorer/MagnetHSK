@@ -23,22 +23,22 @@ typedef enum MagnetHSK_cmd
 {
   // 2-248 are board-specific: these are test commands
   // 2-8 are resistance readings
-  eResistanceCh3 = 0x02,
-  eResistanceCh6 = 0x03,
-  eResistanceCh9 = 0x04,
-  eResistanceCh12 = 0x05,
-  eResistanceCh16 = 0x06,
-  eResistanceCh20 = 0x07,
+  eTopStackRTDohms       = 0x02,
+  eTopNonStackRTDohms    = 0x03,
+  eBottomStackRTDohms    = 0x04,
+  eBottomNonStackRTDohms = 0x05,
+  eShieldRTD1ohms        = 0x06,
+  eShieldRTD2ohms        = 0x07,
   // 9-15 are temperature readings
-  eTempCh3 = 0x08,
-  eTempCh6 = 0x09,
-  eTempCh9 = 0x0A,
-  eTempCh12 = 0x0B,
-  eTempCh16 = 0x0C,
-  eTempCh20 = 0x0D,
-  // 16-18 are flow readings
-  eFlow1 = 0x0E,
-  eFlow2 = 0x0F,
+  eTopStackRTDtemp       = 0x08,
+  eTopNonStackRTDtemp    = 0x09,
+  eBottomStackRTDtemp    = 0x0A,
+  eBottomNonStackRTDtemp = 0x0B,
+  eShieldRTD1temp        = 0x0C,
+  eShieldRTD2temp        = 0x0D,
+  // 16-18 are flow meter readings
+  eWhisperStack = 0x0E,
+  eWhisperShield = 0x0F,
   // 16-25 are read temperature probes
   eTempProbe1 = 0x10,
   eTempProbe2 = 0x11,
@@ -54,7 +54,8 @@ typedef enum MagnetHSK_cmd
   ePressure_regular = 0x1A,
   eHeliumLevels = 0x1B,
   eRTDall = 0x1C,
-  eFlows = 0x1D,
+  eWhisperBoth = 0x1D,
   ePressure = 0x1E,
   eISR = 0xA0,
+  eMagField = 0xA1
 } MagnetHSK_cmd;
