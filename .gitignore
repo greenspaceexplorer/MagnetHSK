@@ -1,0 +1,29 @@
+*.mode1v3
+
+docs/html
+docs/tagfile.xml
+
+# xcode
+*.pbxuser
+*.perspectivev3
+xcuserdata
+build
+*.app
+#*.a
+
+# OSX
+.DS_Store
+
+# codeblocks
+*.layout
+example/obj
+
+# Win
+*.exe
+*.dll
+
+# VS Code
+.vscode
+
+# Obsidian Notes
+.obsidian

@@ -1,1 +1,1 @@
-# MagnetHSK
+# HELIX Magnet Housekeeping Firmware
