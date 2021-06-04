@@ -90,10 +90,14 @@ struct sMagnetRTD {
 /* Magnet Flowmeters */
 // subhsk_id=0x02, command associated with this struct: eFlows
 struct sMagnetFlows {
-  double pressure; //double, flowmeter 1 pressure
-  double temperature; //double, flowmeter 1 temperature
-  double volume; //double, flowmeter 1 volume flow
-  double mass; //double, flowmeter 1 mass flow
+  double stack_pressure; //double, stack flowmeter pressure
+  double stack_temperature; //double, stack flowmeter temperature
+  double stack_volume; //double, stack flowmeter volume flow
+  double stack_mass; //double, stack flowmeter mass flow
+  double shield_pressure; //double, shield flowmeter pressure
+  double shield_temperature; //double, shield flowmeter temperature
+  double shield_volume; //double, shield flowmeter volume flow
+  double shield_mass; //double, shield flowmeter mass flow
 } __attribute__((packed));
 
 /* Magnet Pressure Transducer */
@@ -101,6 +105,13 @@ struct sMagnetFlows {
 struct sMagnetPressure {
   uint16_t Pressure; //0-5 Vdc to ADC., Pressure Transducer pressure reading
 } __attribute__((packed));
+
+/* Magnet B-field sensor */
+// subhsk_id=0x02, command associated with this struct: eMagField
+struct sMagnetField {
+    double field; // placeholder for when Noah adds a b-field probe
+} __attribute__((packed));
+
 
 /*****DCT Hsk Structs*****/
 /* DCT launchpad */
@@ -127,7 +138,8 @@ struct sDCTHV {
 /* DCT Pressure Transducer */
 // subhsk_id=0x03, command associated with this struct: ePressure
 struct sDCTPressure {
-  uint16_t Pressure; // 10 bits ADC, Pressure Transducer pressure reading
+  uint16_t Pressure_Vessel; // 10 bits ADC, Pressure Transducer vessel reading from IC
+  uint16_t Pressure_vacuumref; // 12 bits ADC, Pressure Transducer vacuum ref. reading on launchpad
 } __attribute__((packed));
 
 /* HV supplies monitoring*/
@@ -140,3 +152,5 @@ struct sDCTHVConverted {
 } __attribute__((packed));
 
 
+/*****Power Hsk Structs*****/
+// Hyebin's stuff here probably

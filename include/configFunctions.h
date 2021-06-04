@@ -1,6 +1,6 @@
 #pragma once
 
-// clang-format off
+// // clang-format off
 #include <SPI.h> // include the SPI library
 #include "driverlib/sysctl.h"
 #include "driverlib/uart.h"
