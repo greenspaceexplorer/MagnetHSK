@@ -4,46 +4,11 @@
  * Initiates serial port & follows HSK protocol for command responses and error
  * reporting. This program can be used on other devices by changing the device
  * address (myID) and the downStream serial connection (direct line to the SFC)
- *
- * CONSTANTS:
- * --PACKETMARKER is defined in Cobs_encoding.h
- * --MAX_PACKET_LENGTH is defined in PacketSerial
- * --NUM_LOCAL_CONTROLS is defined here
- * --FIRST_LOCAL_COMMAND is defined here
- * --TEST_MODE_PERIOD is defined here
- * --BAUD rates are defined here
- *
  */
 
-#include <Core_protocol.h>
-#include <PacketSerial.h>
-#include <driverlib/sysctl.h>
-#include <Hsk_all_data_types.h>
-/* These are device specific */
-#include <MagnetHSK_protocol.h>
-// For magnet housekeeping devices
-#include <PressureAndFlow.h>
-#include <configConstants.h>
-#include <configFunctions.h>
-#include <supportFunctions.h>
-#include <TempSensors.h>
-
-#include "driverlib/uart.h"
-#include "inc/hw_memmap.h"
-#include "inc/hw_types.h"
-#include "inc/hw_nvic.h"
-#include "inc/hw_flash.h"
-#include "driverlib/sysctl.h"
-/* other includes you may want go in the src/SUBHSK_lib folder
-#include "src/SUBHSK_lib/configuration_constants.h"
-*/
-// these files above need to be changed based on the thermistor or rtd, etc. So if we borrow the examples from magnet hsk then we can change the channels and types in just these files but keep the function the same.
-//////////////////////////////////////
-#define DOWNBAUD 115200       // Baudrate to the SFC
-#define UPBAUD 9600           // Baudrate to upsteam devices
-#define TEST_MODE_PERIOD 100  // period in milliseconds between testmode packets being sent
-#define FIRST_LOCAL_COMMAND 2 // value of hdr->cmd that is the first command local to the board
-#define NUM_LOCAL_CONTROLS 30 // how many commands total are local to the board
+#include <Arduino.h>
+#include <SPI.h>
+#include <MagnetHSK.h>
 
 /* Declare instances of PacketSerial to set up the serial lines */
 PacketSerial downStream1; // mainHSK
@@ -346,7 +311,7 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     retval = EBADLEN;
     break;
   /* Resistance measurements */
-  case eTopStackRTDtemp:
+  case eTopStackRTDohms:
   {
     float ResRead = returnResistance(CHIP_SELECT, 3);
     memcpy(buffer, (uint8_t *)&ResRead, sizeof(ResRead));
@@ -601,7 +566,7 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     memcpy(buffer, (uint8_t *)magnetrtds, sizeof(sMagnetRTD));
     retval = sizeof(sMagnetRTD);
     break;
-  case eFlows:
+  case eWhisperBoth:
   {
     double gasdata[4];
     char gastype[32];
@@ -609,35 +574,35 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     bool FlowRead = readFlow(1, gasdata, gastype, errorcode);
     if (FlowRead)
     {
-      magnetflows->F1_pressure = gasdata[0];
-      magnetflows->F1_temperature = gasdata[1];
-      magnetflows->F1_volume = gasdata[2];
-      magnetflows->F1_mass = gasdata[3];
+      magnetflows->stack_pressure = gasdata[0];
+      magnetflows->stack_temperature = gasdata[1];
+      magnetflows->stack_volume = gasdata[2];
+      magnetflows->stack_mass = gasdata[3];
     }
     else
     {
-      magnetflows->F1_pressure = -9999;
-      magnetflows->F1_temperature = -9999;
-      magnetflows->F1_volume = -9999;
-      magnetflows->F1_mass = -9999;
+      magnetflows->stack_pressure = -9999;
+      magnetflows->stack_temperature = -9999;
+      magnetflows->stack_volume = -9999;
+      magnetflows->stack_mass = -9999;
     }
     FlowRead = readFlow(2, gasdata, gastype, errorcode);
     if (FlowRead)
     {
-      magnetflows->F2_pressure = gasdata[0];
-      magnetflows->F2_temperature = gasdata[1];
-      magnetflows->F2_volume = gasdata[2];
-      magnetflows->F2_mass = gasdata[3];
+      magnetflows->shield_pressure = gasdata[0];
+      magnetflows->shield_temperature = gasdata[1];
+      magnetflows->shield_volume = gasdata[2];
+      magnetflows->shield_mass = gasdata[3];
     }
     else
     {
-      magnetflows->F2_pressure = -9999;
-      magnetflows->F2_temperature = -9999;
-      magnetflows->F2_volume = -9999;
-      magnetflows->F2_mass = -9999;
+      magnetflows->shield_pressure = -9999;
+      magnetflows->shield_temperature = -9999;
+      magnetflows->shield_volume = -9999;
+      magnetflows->shield_mass = -9999;
     }
-    memcpy(buffer, (uint8_t *)magnetflows, sizeof(sMagnetFlows_t));
-    retval = sizeof(sMagnetFlows_t);
+    memcpy(buffer, (uint8_t *)magnetflows, sizeof(sMagnetFlows));
+    retval = sizeof(sMagnetFlows);
     break;
   }
   case ePressure:
@@ -650,15 +615,13 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     if (pressure_bool)
     {
       magnetpressure->Pressure = pressureValue;
-      magnetpressure->Temperature = temperature;
     }
     else
     {
       magnetpressure->Pressure = -9999;
-      magnetpressure->Temperature = -9999;
     }
-    memcpy(buffer, (uint8_t *)magnetpressure, sizeof(sMagnetPressure_t));
-    retval = sizeof(sMagnetPressure_t);
+    memcpy(buffer, (uint8_t *)magnetpressure, sizeof(sMagnetPressure));
+    retval = sizeof(sMagnetPressure);
     break;
   }
   case eISR:
@@ -777,3 +740,4 @@ void switch_LED()
     digitalWrite(LED, HIGH);
   }
 }
+// 
