@@ -51,11 +51,12 @@ typedef enum MagnetHSK_cmd
   eTempProbe9 = 0x18,
   eTempProbe10 = 0x19,
   // 26 is read pressure
-  ePressure_regular = 0x1A,
+  ePressureRegular = 0x1A, // why are there two pressures?
   eHeliumLevels = 0x1B,
   eRTDall = 0x1C,
   eWhisperBoth = 0x1D,
   ePressure = 0x1E,
   eISR = 0xA0,
-  eMagField = 0xA1
+  eMagField = 0xA1,
+  eALL = 0xA2
 } MagnetHSK_cmd;

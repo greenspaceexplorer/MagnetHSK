@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include <string.h>
 
-void initRS232();
+void initMagnetWhispers();
 
 bool hasEvenParity(char x);
 char convertSendChar(char raw);
