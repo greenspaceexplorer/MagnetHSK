@@ -45,8 +45,9 @@ The magnet housekeeping command struct is defined in [include/MagnetHSK_protocol
 | 27  | `0x1C` |    0     | `eRTDall`                | All internal magnet RTDs in Celsius                              |
 | 28  | `0x1D` |    0     | `eWhisperBoth`           | All readings from both flow meters                               |
 | 29  | `0x1E` |    0     | `ePressure`              | Magnet pressure sensor                                           |
-| 30  | `0xA1` |    0     | `eMagField`              | Magnetic field sensor                                            |
-| 31  | `0xA2` |    0     | `eALL`                   | All magnet housekeeping readings                                 |
+| 30  | `0x1F` |    0     | `eMagField`              | Magnetic field sensor                                            |
+| 31  | `0xA0` |	0	  |	`eISR`					| On board temperature sensor											|
+| 32  | `0xA2` |    0     | `eALL`                   | All magnet housekeeping readings                                 |
 
 TODO: define data structures for each command
 

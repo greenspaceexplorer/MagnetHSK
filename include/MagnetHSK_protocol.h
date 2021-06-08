@@ -56,7 +56,7 @@ typedef enum MagnetHSK_cmd
   eRTDall = 0x1C,
   eWhisperBoth = 0x1D,
   ePressure = 0x1E,
+  eMagField = 0x1F,
   eISR = 0xA0,
-  eMagField = 0xA1,
   eALL = 0xA2
 } MagnetHSK_cmd;
