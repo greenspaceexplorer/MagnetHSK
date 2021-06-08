@@ -28,7 +28,40 @@ housekeeping_err_t *hdr_err;
 housekeeping_prio_t *hdr_prio;
 /* Memory buffers for housekeeping system functions */
 uint8_t numDevices = 0;                                                                                                                // Keep track of how many devices are upstream
-uint8_t commandPriority[NUM_LOCAL_CONTROLS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 2, 3}; // Each command's priority takes up one byte
+uint8_t commandPriority[NUM_LOCAL_CONTROLS] = {
+                                              0, // eTopStackRTDohms 
+                                              0, // eTopNonStackRTDohms
+                                              0, // eBottomStackRTDohms
+                                              0, // eBottomNonStackRTDohms
+                                              0, // eShieldRTD1ohms
+                                              0, // eShieldRTD2ohms
+                                              0, // eTopStackRTDtemp
+                                              0, // eTopNonStackRTDtemp
+                                              0, // eBottomStackRTDtemp
+                                              0, // eBottomNonStackRTDtemp
+                                              0, // eShieldRTD1temp
+                                              0, // eShieldRTD2temp
+                                              0, // eWhisperStack
+                                              0, // eWhisperShield
+                                              0, // eTempProbe1
+                                              0, // eTempProbe2 
+                                              0, // eTempProbe3 
+                                              0, // eTempProbe4 
+                                              0, // eTempProbe5 
+                                              0, // eTempProbe6 
+                                              0, // eTempProbe7 
+                                              0, // eTempProbe8 
+                                              0, // eTempProbe9 
+                                              0, // eTempProbe10
+                                              0, // ePressureRegular
+                                              0, // eHeliumLevels
+                                              0, // eRTDall
+                                              0, // eWhisperBoth
+                                              0, // ePressure
+                                              0, // eISR
+                                              0, // eMagField
+                                              0  // eALL
+                                              }; // Each command's priority takes up one byte
 
 PacketSerial *serialDevices = &downStream1;
 uint8_t addressList = 0; // List of all downstream devices
@@ -89,6 +122,13 @@ void setup()
   // LED on launchpad
   pinMode(LED, OUTPUT);
   digitalWrite(LED, HIGH);
+  
+  // *** Initialize magnet housekeeping ***
+  initMagnetWhispers();
+  
+  // Set ADC resolution to 12 bits
+  analogReadResolution(12); 
+  
 }
 
 /*******************************************************************************
@@ -101,27 +141,20 @@ void loop()
   {
     switch_LED(); 
     TempRead = analogRead(TEMPSENSOR);
-  
-    Serial3.println("Serial 3 -> Main HSK active!"); // DEBUG
-    Serial3.println(float(TempRead)/40.960); // DEBUG
-    Serial3.println(millis()); //DEBUG
   }
   LEDUpdateTime = millis()%LED_UPDATE_PERIOD;
 
   // example send packet unprompted every PACKET_PERIOD
   if (millis()%PACKET_UPDATE_PERIOD < PacketUpdateTime)
   {
-    Serial3.print("PacketUpdateTime = "); // DEBUG
-    Serial3.println(PacketUpdateTime); // DEBUG
-    Serial3.println(millis()); //DEBUG
-
     housekeeping_hdr_t *packet_fake_hdr = (housekeeping_hdr_t *)packet_fake; // fakehdr is best way to send a packet
     packet_fake_hdr->dst = myID;
     packet_fake_hdr->src = eSFC;
     packet_fake_hdr->len = 0;   // this should always be 0, especially because the array is just enough to hold the header.
-    packet_fake_hdr->cmd = 160; // which command you want on the timer goes here.
+    packet_fake_hdr->cmd = ePressure; // which command you want on the timer goes here.
     // to construct a packet, pass it a fake header
     handleLocalCommand(packet_fake_hdr, (uint8_t *)packet_fake_hdr + hdr_size, (uint8_t *)outgoingPacket);
+    
   }
   PacketUpdateTime = millis()%PACKET_UPDATE_PERIOD;
 
@@ -531,7 +564,7 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     break;
   }
   /* Pressure Readings */
-  case ePressure_regular:
+  case ePressureRegular:
   {
     double pressureValue;
     double temperature;
@@ -567,7 +600,6 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
   case eRTDall:
     //hdr_out->src=eMagnetHsk;
     magnetrtds->Top_stack = returnTemperature(CHIP_SELECT, 3);
-    ;
     magnetrtds->Btm_stack = returnTemperature(CHIP_SELECT, 9);
     magnetrtds->Top_nonstack = returnTemperature(CHIP_SELECT, 6);
     magnetrtds->Btm_nonstack = returnTemperature(CHIP_SELECT, 12);
@@ -617,19 +649,14 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
   }
   case ePressure:
   {
-    double pressureValue;
-    double temperature;
-    char typeOfPressure;
-    char errorcode[16];
-    bool pressure_bool = readPressureSensor(&pressureValue, &temperature, &typeOfPressure, errorcode);
-    if (pressure_bool)
-    {
-      magnetpressure->Pressure = pressureValue;
-    }
-    else
-    {
-      magnetpressure->Pressure = -9999;
-    }
+
+    magnetpressure->Pressure = analogRead(A0);
+    // analogReadResolution(10);
+    // Serial3.print("Magnet pressure 10 bit ADC = ");
+    // Serial3.println(analogRead(A0));
+    // analogReadResolution(12);
+    Serial3.print("Magnet pressure 12 bit ADC = ");
+    Serial3.println(analogRead(A0));
     memcpy(buffer, (uint8_t *)magnetpressure, sizeof(sMagnetPressure));
     retval = sizeof(sMagnetPressure);
     break;
@@ -640,6 +667,16 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     float TempC = (float)(1475 - ((2475 * TempRead) / 4096)) / 10;
     memcpy(buffer, (uint8_t *)&TempC, sizeof(TempC));
     retval = sizeof(TempC);
+    break;
+  }
+  case eMagField:
+  {
+    // TODO: add a magnetic field sensor
+    break;
+  }
+  case eALL:
+  {
+    // should iterate through all commands or make a new struct?
     break;
   }
   case eReset:

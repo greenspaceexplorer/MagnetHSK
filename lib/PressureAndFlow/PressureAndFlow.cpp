@@ -1,9 +1,8 @@
 #include "PressureAndFlow.h"
 
-void initRS232() {
+void initMagnetWhispers() {
   Serial1.begin(9600);  // Flow 1 (Stack) // COMMENTED THIS LINE OUT TO TEST MAIN HSK CONNECTION-KEITH
   Serial5.begin(9600);  // Flow 2 (Shield)
-  Serial2.begin(19200); // Pressure
 }
 
 bool hasEvenParity(char x) {
