@@ -60,10 +60,10 @@ uint32_t TempRead = 0;
 // for Launchpad LED example of timer used for reading sensors without holding uC attention
 #define LED GREEN_LED
 #define LED_UPDATE_PERIOD 1350
-unsigned long LEDUpdateTime = 0; // keeping LED to visualize no hanging
+uint LEDUpdateTime = 0; // keeping LED to visualize no hanging
 bool is_high = true;
 #define PACKET_UPDATE_PERIOD 30050
-unsigned long PacketUpdateTime = 0; // unprompted packet timer
+uint PacketUpdateTime = 0; // unprompted packet timer
 uint8_t packet_fake[5] = {0};       // array for using existing functions to implement command and send packet.
 
 /*******************************************************************************
@@ -77,8 +77,8 @@ void setup()
   //downStream1.setPacketHandler(&checkHdr);
 
   // Serial port for downstream to Main HSK
-  Serial1.begin(DOWNBAUD);
-  downStream1.setStream(&Serial1);
+  Serial3.begin(DOWNBAUD);
+  downStream1.setStream(&Serial3);
   downStream1.setPacketHandler(&checkHdr);
   // Point to data in a way that it can be read as a header
   hdr_out = (housekeeping_hdr_t *)outgoingPacket;
@@ -97,16 +97,24 @@ void setup()
 void loop()
 {
 
-  if ((long)(millis() - LEDUpdateTime) > 0)
+  if (millis()%LED_UPDATE_PERIOD < LEDUpdateTime)
   {
-    LEDUpdateTime += LED_UPDATE_PERIOD;
-    switch_LED();
+    switch_LED(); 
     TempRead = analogRead(TEMPSENSOR);
+  
+    Serial3.println("Serial 3 -> Main HSK active!"); // DEBUG
+    Serial3.println(float(TempRead)/40.960); // DEBUG
+    Serial3.println(millis()); //DEBUG
   }
+  LEDUpdateTime = millis()%LED_UPDATE_PERIOD;
+
   // example send packet unprompted every PACKET_PERIOD
-  if ((long)(millis() - PacketUpdateTime) > 0)
+  if (millis()%PACKET_UPDATE_PERIOD < PacketUpdateTime)
   {
-    PacketUpdateTime += PACKET_UPDATE_PERIOD;
+    Serial3.print("PacketUpdateTime = "); // DEBUG
+    Serial3.println(PacketUpdateTime); // DEBUG
+    Serial3.println(millis()); //DEBUG
+
     housekeeping_hdr_t *packet_fake_hdr = (housekeeping_hdr_t *)packet_fake; // fakehdr is best way to send a packet
     packet_fake_hdr->dst = myID;
     packet_fake_hdr->src = eSFC;
@@ -115,6 +123,8 @@ void loop()
     // to construct a packet, pass it a fake header
     handleLocalCommand(packet_fake_hdr, (uint8_t *)packet_fake_hdr + hdr_size, (uint8_t *)outgoingPacket);
   }
+  PacketUpdateTime = millis()%PACKET_UPDATE_PERIOD;
+
   /* Continuously read in one byte at a time until a packet is received */
   if (downStream1.update() != 0)
     badPacketReceived(&downStream1);
