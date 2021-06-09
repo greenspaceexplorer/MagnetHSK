@@ -5,11 +5,11 @@
 #include <Core_protocol.h>
 #include <PacketSerial.h>
 #include <driverlib/sysctl.h>
-#include <Hsk_all_data_types.h>
 /* These are device specific */
 #include <MagnetHSK_protocol.h>
 // For magnet housekeeping devices
 #include <PressureAndFlow.h>
+#include <AnalogPressure.h>
 #include <configConstants.h>
 #include <configFunctions.h>
 #include <supportFunctions.h>
@@ -42,6 +42,68 @@
 #define TEST_MODE_PERIOD 100  // period in milliseconds between testmode packets being sent
 #define FIRST_LOCAL_COMMAND 2 // value of hdr->cmd that is the first command local to the board
 #define NUM_LOCAL_CONTROLS 32 // how many commands total are local to the board
+
+/*******************************************************************************
+ * Magnet housekeeping functions 
+ *******************************************************************************/
+
+/**
+ * Initializes magnet housekeeping devices and ports. Returns false if unsuccessful. 
+ */
+bool initMagnetHSK(); 
+
+/*******************************************************************************
+ * Magnet housekeeping structs
+ *******************************************************************************/
+// subhsk_id=0x01, command associated with this struct: eISR
+struct sMagnetInternalTemp {
+  float Temperature; // internal temperature sensor to uC
+} __attribute__((packed));
+
+/* Liquid Helium Level Sensors */
+// subhsk_id=0x02, command associated with this struct: eHeliumLevels
+struct sHeliumLevels {
+  uint16_t Farside; //  12 bits ADC, far side level sensor
+  uint16_t Nearside; //  12 bits ADC, Near side level sensor
+} __attribute__((packed));
+
+
+/* Magnet RTDs */
+// subhsk_id=0x02, command associated with this struct: eRTDall
+struct sMagnetRTD {
+  float Top_stack; // float, top stack RTD temperature
+  float Btm_stack; // float, btm stack RTD temperature
+  float Top_nonstack; // float, top non-stack RTD temperature
+  float Btm_nonstack; // float, btm non-stack RTD temperature
+  float Shield1; // float, shield1 RTD temperature
+  float Shield2; // float, shield2 RTD temperature
+} __attribute__((packed));
+
+/* Magnet Flowmeters */
+// subhsk_id=0x02, command associated with this struct: eFlows
+struct sMagnetFlows {
+  double stack_pressure; //double, stack flowmeter pressure
+  double stack_temperature; //double, stack flowmeter temperature
+  double stack_volume; //double, stack flowmeter volume flow
+  double stack_mass; //double, stack flowmeter mass flow
+  double shield_pressure; //double, shield flowmeter pressure
+  double shield_temperature; //double, shield flowmeter temperature
+  double shield_volume; //double, shield flowmeter volume flow
+  double shield_mass; //double, shield flowmeter mass flow
+} __attribute__((packed));
+
+/* Magnet Pressure Transducer */
+// subhsk_id=0x02, command associated with this struct: ePressure
+struct sMagnetPressure {
+  uint16_t Pressure; //0-5 Vdc to ADC., Pressure Transducer pressure reading
+} __attribute__((packed));
+
+/* Magnet B-field sensor */
+// subhsk_id=0x02, command associated with this struct: eMagField
+struct sMagnetField {
+    double field; // placeholder for when Noah adds a b-field probe
+} __attribute__((packed));
+
 
 /*******************************************************************************
  * Packet handling functions
