@@ -95,9 +95,16 @@ uint32_t TempRead = 0;
 #define LED_UPDATE_PERIOD 1350
 uint LEDUpdateTime = 0; // keeping LED to visualize no hanging
 bool is_high = true;
-#define PACKET_UPDATE_PERIOD 30050
+#define PACKET_UPDATE_PERIOD 10050
 uint PacketUpdateTime = 0; // unprompted packet timer
 uint8_t packet_fake[5] = {0};       // array for using existing functions to implement command and send packet.
+
+/* Magnet housekeeping global vars */
+
+AnalogPressure gp50(160,A0,10); // gp50 analog pressure transducer
+
+// Debugging stuff
+int byteme = 0;
 
 /*******************************************************************************
 * Main program
@@ -123,12 +130,14 @@ void setup()
   pinMode(LED, OUTPUT);
   digitalWrite(LED, HIGH);
   
-  // *** Initialize magnet housekeeping ***
-  initMagnetWhispers();
+  // initialize magnet housekeeping
+  initMagnetHSK();
   
-  // Set ADC resolution to 12 bits
-  analogReadResolution(12); 
-  
+  analogReadResolution(gp50.getADCbits());
+//  Serial3.print("Analog read resolution = ");
+//  Serial3.println(gp50.getADCbits());
+  Serial3.println();
+  Serial3.println("*****RESTART*****");
 }
 
 /*******************************************************************************
@@ -158,10 +167,34 @@ void loop()
   }
   PacketUpdateTime = millis()%PACKET_UPDATE_PERIOD;
 
+  if(Serial3.available()){
+    Serial3.println("Receiving bytes...");
+    while(Serial3.available() > 0){
+      byteme = Serial3.read();
+      Serial3.print(byteme);
+    }
+
+  }
   /* Continuously read in one byte at a time until a packet is received */
-  if (downStream1.update() != 0)
-    badPacketReceived(&downStream1);
+  //if (downStream1.update() != 0)
+  //  badPacketReceived(&downStream1);
 }
+
+
+/*******************************************************************************
+ * Magnet housekeeping functions 
+ *******************************************************************************/
+
+bool initMagnetHSK(){
+  
+  // initialize flow meters
+  initMagnetWhispers();
+  // set adc resolution to value for pressure transducer
+  // TODO: make sure adc resolution is universal across microcontroller
+  return true;
+}
+
+
 /*******************************************************************************
  * Packet handling functions
  *******************************************************************************/
@@ -262,7 +295,7 @@ void buildError(housekeeping_err_t *err, housekeeping_hdr_t *respHdr, housekeepi
   err->cmd = hdr->cmd;
   err->error = error;
 }
-/***********************
+
 /*******************************************************************************
  * END OF Packet handling functions
  *******************************************************************************/
@@ -650,13 +683,14 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
   case ePressure:
   {
 
-    magnetpressure->Pressure = analogRead(A0);
+    // Serial3.println(gp50.readADC());
+    magnetpressure->Pressure = 190;
     // analogReadResolution(10);
     // Serial3.print("Magnet pressure 10 bit ADC = ");
     // Serial3.println(analogRead(A0));
     // analogReadResolution(12);
-    Serial3.print("Magnet pressure 12 bit ADC = ");
-    Serial3.println(analogRead(A0));
+    // Serial3.print("Magnet pressure 12 bit ADC = ");
+    // Serial3.println(magnetpressure->Pressure,DEC);
     memcpy(buffer, (uint8_t *)magnetpressure, sizeof(sMagnetPressure));
     retval = sizeof(sMagnetPressure);
     break;

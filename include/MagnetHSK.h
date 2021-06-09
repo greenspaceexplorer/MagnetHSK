@@ -10,6 +10,7 @@
 #include <MagnetHSK_protocol.h>
 // For magnet housekeeping devices
 #include <PressureAndFlow.h>
+#include <AnalogPressure.h>
 #include <configConstants.h>
 #include <configFunctions.h>
 #include <supportFunctions.h>
@@ -42,6 +43,15 @@
 #define TEST_MODE_PERIOD 100  // period in milliseconds between testmode packets being sent
 #define FIRST_LOCAL_COMMAND 2 // value of hdr->cmd that is the first command local to the board
 #define NUM_LOCAL_CONTROLS 32 // how many commands total are local to the board
+
+/*******************************************************************************
+ * Magnet housekeeping functions 
+ *******************************************************************************/
+
+/**
+ * Initializes magnet housekeeping devices and ports. Returns false if unsuccessful. 
+ */
+bool initMagnetHSK(); 
 
 /*******************************************************************************
  * Packet handling functions
