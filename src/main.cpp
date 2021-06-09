@@ -101,7 +101,7 @@ uint8_t packet_fake[5] = {0}; // array for using existing functions to implement
 
 /* Magnet housekeeping global vars */
 
-AnalogPressure gp50(160, A0, 10); // gp50 analog pressure transducer
+AnalogPressure gp50(160, A0, 12); // gp50 analog pressure transducer
 
 // Debugging stuff
 int byteme = 0;
@@ -683,16 +683,9 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
   }
   case ePressure:
   {
-
-    // Serial3.println(gp50.readADC());
-    magnetpressure->Pressure = 190;
-    // analogReadResolution(10);
-    // Serial3.print("Magnet pressure 10 bit ADC = ");
-    // Serial3.println(analogRead(A0));
-    // analogReadResolution(12);
-    // Serial3.print("Magnet pressure 12 bit ADC = ");
-    // Serial3.println(magnetpressure->Pressure,DEC);
-    memcpy(buffer, (uint8_t *)magnetpressure, sizeof(sMagnetPressure));
+    uint16_t localPressure = gp50.readADC();
+    magnetpressure->Pressure = localPressure;
+    memcpy(buffer, magnetpressure, sizeof(sMagnetPressure));
     retval = sizeof(sMagnetPressure);
     break;
   }
@@ -766,10 +759,6 @@ void handleLocalCommand(housekeeping_hdr_t *hdr, uint8_t *data, uint8_t *respons
   }
   fillChecksum(responsePacketBuffer);
   // send to SFC
-  
-  sMagnetPressure *testPressure = (sMagnetPressure *)respData;
-  Serial3.print("\npressure = ");
-  Serial3.println(testPressure->Pressure);
   downStream1.send(responsePacketBuffer, respHdr->len + hdr_size + 1);
   currentPacketCount++;
 }
