@@ -1,6 +1,6 @@
 #include "PressureAndFlow.h"
 
-void initMagnetWhispers() {
+void setupMagnetWhispers() {
   Serial1.begin(9600);  // Flow 1 (Stack) // COMMENTED THIS LINE OUT TO TEST MAIN HSK CONNECTION-KEITH
   Serial5.begin(9600);  // Flow 2 (Shield)
 }

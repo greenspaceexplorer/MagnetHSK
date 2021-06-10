@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include <string.h>
 
-void initMagnetWhispers();
+void setupMagnetWhispers();
 
 bool hasEvenParity(char x);
 char convertSendChar(char raw);

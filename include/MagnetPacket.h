@@ -23,7 +23,11 @@
 #define FIRST_LOCAL_COMMAND 2 // value of hdr->cmd that is the first command local to the board
 #define NUM_LOCAL_CONTROLS 32 // how many commands total are local to the board
 
-
+/*******************************************************************************
+ * Packet sending/receiving routines
+ *******************************************************************************/
+void setupPackets(HardwareSerial &downStreamPort);
+void periodicPacket();
 /*******************************************************************************
  * Packet handling functions
  *******************************************************************************/
@@ -38,6 +42,5 @@ int handleLocalWrite(uint8_t localCommand, uint8_t *data, uint8_t len, uint8_t *
 int handleLocalRead(uint8_t localCommand, uint8_t *buffer);
 void handleLocalCommand(housekeeping_hdr_t *hdr, uint8_t *data, uint8_t *responsePacketBuffer);
 void handleTestMode(housekeeping_hdr_t *hdr, uint8_t *data, uint8_t *responsePacketBuffer);
-void switch_LED();
 
 #endif // MAGNETPACKET_H

@@ -28,19 +28,7 @@
 /**
  * Initializes magnet housekeeping devices and ports. Returns false if unsuccessful. 
  */
-bool initMagnetHSK(); 
-
-
-
-/*******************************************************************************
- *  Header only class to read out magnet housekeeping structs
- *******************************************************************************/
- class readMagnetHSK{
-     public:
-        readMagnetHSK();
-
- };
-
+bool setupMagnetHSK(); 
 
 
 #endif //MAGNETHSK_H

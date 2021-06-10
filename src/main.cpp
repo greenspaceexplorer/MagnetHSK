@@ -12,7 +12,16 @@
 #include <MagnetHSK.h>
 #include <MagnetPacket.h>
 
+/*******************************************************************************
+ * Function Declarations
+ *******************************************************************************/
+/* switches LED state*/
+void switch_LED(uint8_t LED);
+void serialPrint(HardwareSerial &readPort, HardwareSerial &printPort);
 
+/*******************************************************************************
+ * Global Variables 
+ *******************************************************************************/
 /* Declare instances of PacketSerial to set up the serial lines */
 PacketSerial downStream1; // mainHSK
 
@@ -94,7 +103,6 @@ const int thermalPin = 38;
 #define SENSOR_UPDATE_PERIOD 1000 // how often to check/write sensors
 uint32_t TempRead = 0;
 // for Launchpad LED example of timer used for reading sensors without holding uC attention
-#define LED GREEN_LED
 #define LED_UPDATE_PERIOD 1350
 uint LEDUpdateTime = 0; // keeping LED to visualize no hanging
 bool is_high = true;
@@ -114,14 +122,73 @@ int byteme = 0;
 *******************************************************************************/
 void setup()
 {
-  // to DEBUG this device when connecting directly to computer, use this serial port instead of Serial.1
-  //Serial.begin(DOWNBAUD);
-  //downStream1.setStream(&Serial);
-  //downStream1.setPacketHandler(&checkHdr);
+  // initialize packet communication
+  setupPackets(Serial); // computer (DEBUG)
+  // setupPackets(Serial3); // MainHSK
+  
+  // initialize magnet housekeeping
+  setupMagnetHSK();
 
+  // setup an LED for blinnkery 
+  pinMode(GREEN_LED, OUTPUT);
+  digitalWrite(GREEN_LED, HIGH);
+
+  analogReadResolution(gp50.getADCbits());
+  //  Serial3.print("Analog read resolution = ");
+  //  Serial3.println(gp50.getADCbits());
+  Serial.println();
+  Serial.println("*****RESTART*****");
+}
+
+char request[] = "A\r";
+void loop()
+{
+
+  // Blink the LED so we know the board is running
+  if (millis() % LED_UPDATE_PERIOD < LEDUpdateTime)
+  {
+    switch_LED(GREEN_LED);
+    TempRead = analogRead(TEMPSENSOR);
+  }
+  LEDUpdateTime = millis() % LED_UPDATE_PERIOD;
+
+
+  Serial5.write(request);
+  delay(100);
+  Serial.print("Bytes available = ");
+  Serial.println(Serial5.available());
+  serialPrint(Serial5, Serial);
+  Serial.println();
+  delay(3000);
+
+  // /* PacketSerial.update() reads and processes incoming packets. 
+  //   Returns 0 if it successfully processed the packet.
+  //   Returns nonzero error code if it does not. */
+  // if (downStream1.update() != 0)
+  // {
+  //   // Sends out an error packet if incoming packet was not able to be successfully processed.
+  //   badPacketReceived(&downStream1);
+  // }
+}
+
+/*******************************************************************************
+ * Testing functions
+ *******************************************************************************/
+// Prints out anything in the serial buffer
+void serialPrint(HardwareSerial &readPort, HardwareSerial &printPort){
+  if(readPort.available()){
+    char readout = readPort.read();
+    printPort.print(readout);
+    serialPrint(readPort,printPort);
+  }
+}
+/*******************************************************************************
+ * Packet sending/receiving routines
+ *******************************************************************************/
+void setupPackets(HardwareSerial &downStreamPort){
   // Serial port for downstream to Main HSK
-  Serial3.begin(DOWNBAUD);
-  downStream1.setStream(&Serial3);
+  downStreamPort.begin(DOWNBAUD);
+  downStream1.setStream(&downStreamPort);
   downStream1.setPacketHandler(&checkHdr);
   // Point to data in a way that it can be read as a header
   hdr_out = (housekeeping_hdr_t *)outgoingPacket;
@@ -129,32 +196,9 @@ void setup()
   currentPacketCount = 0;
   PacketUpdateTime = millis() + PACKET_UPDATE_PERIOD;
 
-  // LED on launchpad
-  pinMode(LED, OUTPUT);
-  digitalWrite(LED, HIGH);
-
-  // initialize magnet housekeeping
-  initMagnetHSK();
-
-  analogReadResolution(gp50.getADCbits());
-  //  Serial3.print("Analog read resolution = ");
-  //  Serial3.println(gp50.getADCbits());
-  Serial3.println();
-  Serial3.println("*****RESTART*****");
 }
 
-/*******************************************************************************
- * Main program
- ******************************************************************************/
-void loop()
-{
-
-  if (millis() % LED_UPDATE_PERIOD < LEDUpdateTime)
-  {
-    switch_LED();
-    TempRead = analogRead(TEMPSENSOR);
-  }
-  LEDUpdateTime = millis() % LED_UPDATE_PERIOD;
+void periodicPacket(){
 
   // send packet unprompted every PACKET_PERIOD
   if (millis() % PACKET_UPDATE_PERIOD < PacketUpdateTime)
@@ -172,15 +216,8 @@ void loop()
   }
   PacketUpdateTime = millis() % PACKET_UPDATE_PERIOD;
 
-  /* PacketSerial.update() reads and processes incoming packets. 
-    Returns 0 if it successfully processed the packet.
-    Returns nonzero error code if it does not. */
-  if (downStream1.update() != 0)
-  {
-    // Sends out an error packet if incoming packet was not able to be successfully processed.
-    badPacketReceived(&downStream1);
-  }
 }
+
 
 /*******************************************************************************
  * Packet handling functions
@@ -791,7 +828,7 @@ void handleTestMode(housekeeping_hdr_t *hdr, uint8_t *data, uint8_t *responsePac
     currentPacketCount++;
   }
 }
-void switch_LED()
+void switch_LED(uint8_t LED)
 {
   if (is_high)
   {
