@@ -6,7 +6,7 @@
 #include <PacketSerial.h>
 #include <driverlib/sysctl.h>
 // For magnet housekeeping devices
-#include <PressureAndFlow.h>
+#include <MagnetWhisper.h>
 #include <AnalogPressure.h>
 #include <configConstants.h>
 #include <configFunctions.h>
