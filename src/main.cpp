@@ -10,9 +10,13 @@
 #include <SPI.h>
 #include <MagnetHSK_protocol.h>
 #include <MagnetHSK.h>
+#include <MagnetPacket.h>
+
 
 /* Declare instances of PacketSerial to set up the serial lines */
 PacketSerial downStream1; // mainHSK
+
+PacketSerial *mainHSK = &downStream1;
 
 /* Name of this device */
 housekeeping_id myID = eMagnetHsk; // CHANGE THIS TO THE ID OF SUBHSK Board
