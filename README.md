@@ -12,7 +12,7 @@ Since the TI Tiva libraries hate my macbook, I switched to the open source [Plat
 - That's it!
 
 ## Magnet Housekeeping Commands
-The magnet housekeeping command struct is defined in [include/MagnetHSK_protocol.h](include/MagnetHSK_protocol.h). Available commands are:
+The magnet housekeeping command struct is defined in [include/MagnetHSK.h](include/MagnetHSK.h). Available commands are:
 
 | #   |   ID   | Priority | Name                     | Description                                                      |
 | --- |:------:|:--------:| ------------------------ | ---------------------------------------------------------------- |
