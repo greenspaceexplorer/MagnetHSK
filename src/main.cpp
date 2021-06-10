@@ -8,6 +8,7 @@
 
 #include <Arduino.h>
 #include <SPI.h>
+#include <MagnetHSK_protocol.h>
 #include <MagnetHSK.h>
 
 /* Declare instances of PacketSerial to set up the serial lines */
