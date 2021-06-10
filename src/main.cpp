@@ -16,8 +16,6 @@
 /* Declare instances of PacketSerial to set up the serial lines */
 PacketSerial downStream1; // mainHSK
 
-PacketSerial *mainHSK = &downStream1;
-
 /* Name of this device */
 housekeeping_id myID = eMagnetHsk; // CHANGE THIS TO THE ID OF SUBHSK Board
 
@@ -182,20 +180,6 @@ void loop()
     // Sends out an error packet if incoming packet was not able to be successfully processed.
     badPacketReceived(&downStream1);
   }
-}
-
-/*******************************************************************************
- * Magnet housekeeping functions 
- *******************************************************************************/
-
-bool initMagnetHSK()
-{
-
-  // initialize flow meters
-  initMagnetWhispers();
-  // set adc resolution to value for pressure transducer
-  // TODO: make sure adc resolution is universal across microcontroller
-  return true;
 }
 
 /*******************************************************************************
