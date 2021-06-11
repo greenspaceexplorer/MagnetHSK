@@ -157,11 +157,8 @@ void loop()
     LEDUpdateTime = millis() % LED_UPDATE_PERIOD;
 
 
-    Serial.print("Stack bytes available = ");
-    stackFlow.getRaw();
-    Serial.println();
-    stackFlow.printBuffer(Serial);
-    Serial.println();
+    Serial.print("*** Reading out flowmeter ***");
+    
     delay(3000);
 
     // /* PacketSerial.update() reads and processes incoming packets.
