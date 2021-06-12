@@ -157,7 +157,12 @@ void loop()
     LEDUpdateTime = millis() % LED_UPDATE_PERIOD;
 
 
-    Serial.print("*** Reading out flowmeter ***");
+    Serial.println("*** Reading out flowmeter ***");
+    stackFlow.read(Serial);
+    Serial.println(stackFlow.getBuffer());
+    delay(100);
+    shieldFlow.read(Serial);
+    Serial.println(shieldFlow.getBuffer());
     
     delay(3000);
 

@@ -23,19 +23,19 @@ MagnetWhisper::MagnetWhisper(HardwareSerial &port,uint16_t mytimeout)
 MagnetWhisper::~MagnetWhisper(){
     delete buffer;
 }
-////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------
 void MagnetWhisper::setup()
 {
     flowPort->begin(9600);
 }
 
-////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------
 
 void MagnetWhisper::printBuffer(HardwareSerial &printPort){
     printPort.println(buffer);
 }
 
-////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------
 
 int MagnetWhisper::readToBuffer()
 {
@@ -44,42 +44,46 @@ int MagnetWhisper::readToBuffer()
     delay(100);
     // Send request
     flowPort->write(poll);
-    delay(100);
     // start timeout timer
     timeStart = millis();
     timer = 0;
-    // try reading out until we hit the timeout
-    while(timer < timeout){
-        // begin reading once a reasonable amount of data is available
-        if(flowPort->available()){
-            // readout as long as data is available and the buffer isn't full
-            uint i = 0;
-            while( i < bufferSize && flowPort->available()){
-                // read into buffer
-                buffer[i] = flowPort->read();
-                i++;
-            }
-            if(i > bufferSize){
-                // overflow error
-                return -1;
-            }
-            else if(bufferSize < 35){
-                // incomplete buffer error
-                return -3;
-            }
-            else if(buffer[0] != 'A'){
-                // invalid buffer error
-                return -4;
-            }
-        }
+    // look for data in the serial buffer until we hit the timeout
+    while(!flowPort->available()){
         timer = millis() - timeStart;
+        if(timer > timeout){
+            // timeout error
+            return -2;
+        }
     }
-    // timeout error
-    return -2;
-    
+    // wait for 100 milliseconds while the flow meter finishes writing to the serial buffer
+    delay(100);
+
+    // readout as long as data is available and the buffer isn't full
+    uint i = 0;
+    while( i < bufferSize && flowPort->available()){
+        // read into buffer
+        buffer[i] = flowPort->read();
+        i++;
+    }
+    if(i > bufferSize){
+        // overflow error
+        return -1;
+    }
+    else if(bufferSize < 35){
+        // incomplete buffer error
+        return -3;
+    }
+    else if(buffer[0] != 'A' || buffer[i-1] != '\r'){
+        // invalid buffer error
+        return -4;
+    }
+    else{
+        // return last index of the readout if no errors occurred
+        return i-1;
+    }
 }
 
-////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------
 
 char* MagnetWhisper::getBuffer(){
     return buffer;
@@ -93,7 +97,7 @@ sMagnetFlow MagnetWhisper::getMagnetFlow(){
     return magnetFlow;
 }
 
-////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------
 
 sMagnetFlow MagnetWhisper::read(HardwareSerial &printPort){
     status = this->readToBuffer();
@@ -139,13 +143,43 @@ sMagnetFlow MagnetWhisper::read(HardwareSerial &printPort){
         printPort.println("--Normal readout--");
         char *pch;
         pch = strtok(buffer," ");
+        String flowStr;
+        uint measureCount = 0;
         while(pch != NULL){
-            printPort.println(pch);
+
+            flowStr = String(pch);
+            switch (measureCount)
+            {
+            case 1:
+                Serial.print("Pressure = ");
+                magnetFlow.pressure = flowStr.toFloat();
+                Serial.println(magnetFlow.pressure);
+                break;
+            case 2:
+                Serial.print("Temperature = ");
+                magnetFlow.temperature= flowStr.toFloat();
+                Serial.println(magnetFlow.temperature);
+                break;
+            case 3:
+                Serial.print("Volumetric Flow = ");
+                magnetFlow.volume = flowStr.toFloat();
+                Serial.println(magnetFlow.volume);
+                break;
+            case 4:
+                Serial.print("Mass Flow = ");
+                magnetFlow.mass= flowStr.toFloat();
+                Serial.println(magnetFlow.mass);
+                break;
+            
+            default:
+                break;
+            }
+            measureCount++;
             pch = strtok(NULL," ");
 
-            return magnetFlow;
         }
         
+        return magnetFlow;
         
 
         
