@@ -113,13 +113,23 @@ uint8_t packet_fake[5] = {0}; // array for using existing functions to implement
 
 /* Magnet housekeeping global vars */
 
-AnalogPressure gp50(160, A0, 12); // gp50 analog pressure transducer
+// gp50 analog pressure transducer
+AnalogPressure gp50(160, A0, 12);
+
+// flow meters
 uint16_t timeout = 100;
 MagnetWhisper stackFlow(Serial5, timeout);
 MagnetWhisper shieldFlow(Serial1, timeout);
 sMagnetFlow sStackFlow;
 sMagnetFlow sShieldFlow;
 sMagnetFlows sBothFlow;
+
+// internal RTDs
+SPIClass RTDSPI(0);
+uint8_t RTDSPI_SCK = 11;
+uint8_t RTDSPI_CS  = 12;
+uint8_t RTDSPI_MOSI = 8;
+uint8_t RTDSPI_MISO = 13;
 
 // Debugging stuff
 int byteme = 0;
@@ -133,9 +143,12 @@ void setup()
     // setupPackets(Serial); // computer (DEBUG)
     setupPackets(Serial3); // MainHSK
 
-    // initialize magnet housekeeping
+    // initialize flow meters
     stackFlow.setup();
     shieldFlow.setup();
+    
+    // initialize magnet SPI
+    
 
     // setup an LED for blinnkery
     pinMode(GREEN_LED, OUTPUT);
