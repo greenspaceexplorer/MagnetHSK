@@ -12,7 +12,7 @@ Since the TI Tiva libraries hate my macbook, I switched to the open source [Plat
 - That's it!
 
 ## Magnet Housekeeping Commands
-The magnet housekeeping command struct is defined in [include/MagnetHSK_protocol.h](include/MagnetHSK_protocol.h). Available commands are:
+The magnet housekeeping command struct is defined in [lib/MagnetHSK_protocol/MagnetHSK_protocol.h](lib/MagnetHSK_protocol/MagnetHSK_protocol.h). Available commands are:
 
 | #   |   ID   | Priority | Name                     | Description                                                      |
 | --- |:------:|:--------:| ------------------------ | ---------------------------------------------------------------- |
@@ -46,10 +46,8 @@ The magnet housekeeping command struct is defined in [include/MagnetHSK_protocol
 | 28  | `0x1D` |    0     | `eWhisperBoth`           | All readings from both flow meters                               |
 | 29  | `0x1E` |    0     | `ePressure`              | Magnet pressure sensor                                           |
 | 30  | `0x1F` |    0     | `eMagField`              | Magnetic field sensor                                            |
-| 31  | `0xA0` |	0	  |	`eISR`					| On board temperature sensor											|
+| 31  | `0xA0` |    0     | `eISR`                   | On board temperature sensor                                      |
 | 32  | `0xA2` |    0     | `eALL`                   | All magnet housekeeping readings                                 |
-
-TODO: define data structures for each command
 
 ## Devices
 
@@ -60,6 +58,42 @@ TODO: define data structures for each command
 ### Stack Pressure Transducer
 
 ### Whisper Flow Meters
+
+The magnet flow meters read the temperature, pressure, mass flow rate, and volumetric flow rate of the boiloff from the stack and shield connections. 
+
+**HSK Structs**
+```c++
+/* Magnet Flowmeters */
+// subhsk_id=0x02, commands associated with this struct: eWhisperStack, eWhisperShield
+struct sMagnetFlow
+{
+    float pressure;     // flowmeter pressure
+    float temperature;  // flowmeter temperature
+    float volume;       // flowmeter volume flow
+    float mass;         // flowmeter mass flow
+} __attribute__((packed));
+
+// subhsk_id=0x02, command associated with this struct: eWhisperBoth
+struct sMagnetFlows
+{
+    sMagnetFlow stack;
+    sMagnetFlow shield;
+} __attribute__((packed));
+```
+
+- Error codes are stored as non-physical values in the struct if an invalid reading occurs
+
+| Code |      Error      | Notes                                                         |
+|:----:|:---------------:| ------------------------------------------------------------- |
+|  -1  | Buffer Overflow | Default buffer size is 100 bytes                              | 
+|  -2  |     Timeout     | Length of timeout set when instantiating MagnetWhisper object |
+|  -3  | Incomplete Read | Number of bytes read stored in magnetFlow.volume              |
+|  -4  | Invalid Buffer  | Unexpected buffer format                                      |
+
+
+
+**Documentation**
+- [User Manual](docs/whisper-flow-meter-manual.pdf)
 
 ### External OneWire Temperature Sensors
 
