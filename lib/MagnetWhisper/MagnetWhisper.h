@@ -59,7 +59,7 @@ class MagnetWhisper{
         /**
          * Sends polling request to flow meter and returns a sWhisperFlow struct
          */
-        sMagnetFlow read(HardwareSerial &printPort);
+        sMagnetFlow read();
         
 
     private:

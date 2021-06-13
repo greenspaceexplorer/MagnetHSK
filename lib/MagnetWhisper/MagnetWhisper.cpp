@@ -99,7 +99,7 @@ sMagnetFlow MagnetWhisper::getMagnetFlow(){
 
 //------------------------------------------------------------------------------
 
-sMagnetFlow MagnetWhisper::read(HardwareSerial &printPort){
+sMagnetFlow MagnetWhisper::read(){
     status = this->readToBuffer();
     
     if(status == -1){ // buffer overflow error
@@ -107,7 +107,6 @@ sMagnetFlow MagnetWhisper::read(HardwareSerial &printPort){
         magnetFlow.pressure    = -1.;
         magnetFlow.temperature = -1.;
         magnetFlow.volume      = -1.;
-        printPort.println(-1);
         return magnetFlow;
     }
     else if(status == -2){ // timeout error
@@ -115,7 +114,6 @@ sMagnetFlow MagnetWhisper::read(HardwareSerial &printPort){
         magnetFlow.pressure    = -2.;
         magnetFlow.temperature = -2.;
         magnetFlow.volume      = -2.;
-        printPort.println(-2);
         return magnetFlow;
     }
     else if(status == -3){
@@ -124,7 +122,6 @@ sMagnetFlow MagnetWhisper::read(HardwareSerial &printPort){
         magnetFlow.temperature = -3.;
         // store size of incomplete buffer for debuf information
         magnetFlow.volume = float(bufferSize); 
-        printPort.println(-3);
         return magnetFlow;
     }
     else if(status == -4){ //invalid buffer error
@@ -132,7 +129,6 @@ sMagnetFlow MagnetWhisper::read(HardwareSerial &printPort){
         magnetFlow.pressure    = -4.;
         magnetFlow.temperature = -4.;
         magnetFlow.volume      = -4.;
-        printPort.println(-4);
         return magnetFlow;
     }
     else{
@@ -140,7 +136,6 @@ sMagnetFlow MagnetWhisper::read(HardwareSerial &printPort){
         // Example buffer:
         // A +014.07 +027.15 +000.19 +000.18  He-40C
         // 123456789012345678901234567890123456789012
-        printPort.println("--Normal readout--");
         char *pch;
         pch = strtok(buffer," ");
         String flowStr;
@@ -151,24 +146,16 @@ sMagnetFlow MagnetWhisper::read(HardwareSerial &printPort){
             switch (measureCount)
             {
             case 1:
-                // Serial.print("Pressure = ");
                 magnetFlow.pressure = flowStr.toFloat();
-                // Serial.println(magnetFlow.pressure);
                 break;
             case 2:
-                // Serial.print("Temperature = ");
                 magnetFlow.temperature= flowStr.toFloat();
-                // Serial.println(magnetFlow.temperature);
                 break;
             case 3:
-                // Serial.print("Volumetric Flow = ");
                 magnetFlow.volume = flowStr.toFloat();
-                // Serial.println(magnetFlow.volume);
                 break;
             case 4:
-                // Serial.print("Mass Flow = ");
                 magnetFlow.mass= flowStr.toFloat();
-                // Serial.println(magnetFlow.mass);
                 break;
             
             default:
@@ -178,10 +165,6 @@ sMagnetFlow MagnetWhisper::read(HardwareSerial &printPort){
             pch = strtok(NULL," ");
 
         }
-        
         return magnetFlow;
-        
-
-        
     }
 }

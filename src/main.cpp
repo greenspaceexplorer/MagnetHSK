@@ -119,6 +119,7 @@ MagnetWhisper stackFlow(Serial5, timeout);
 MagnetWhisper shieldFlow(Serial1, timeout);
 sMagnetFlow sStackFlow;
 sMagnetFlow sShieldFlow;
+sMagnetFlows sBothFlow;
 
 // Debugging stuff
 int byteme = 0;
@@ -129,8 +130,8 @@ int byteme = 0;
 void setup()
 {
     // initialize packet communication
-    setupPackets(Serial); // computer (DEBUG)
-    // setupPackets(Serial3); // MainHSK
+    // setupPackets(Serial); // computer (DEBUG)
+    setupPackets(Serial3); // MainHSK
 
     // initialize magnet housekeeping
     stackFlow.setup();
@@ -143,8 +144,8 @@ void setup()
     analogReadResolution(gp50.getADCbits());
     //  Serial3.print("Analog read resolution = ");
     //  Serial3.println(gp50.getADCbits());
-    Serial.println();
-    Serial.println("*****RESTART*****");
+    Serial3.println();
+    Serial3.println("*****RESTART*****");
 }
 
 char request[] = "A\r";
@@ -159,30 +160,35 @@ void loop()
     }
     LEDUpdateTime = millis() % LED_UPDATE_PERIOD;
 
-    Serial.println("Reading stack flow meter...");
-    sStackFlow = stackFlow.read(Serial);
-    printFlow(sStackFlow,Serial);
-    delay(100);
+    // send packet unprompted every PACKET_PERIOD
+    if (millis() % PACKET_UPDATE_PERIOD < PacketUpdateTime)
+    {
+        // construct packet here, rather than receiving one from another device
+        housekeeping_hdr_t *packet_fake_hdr = (housekeeping_hdr_t *)packet_fake; // fakehdr is best way to send a packet
+        packet_fake_hdr->dst = myID;
+        packet_fake_hdr->src = eSFC;
+        packet_fake_hdr->len = 0;         // this should always be 0, especially because the array is just enough to hold the header.
+        packet_fake_hdr->cmd = eWhisperBoth; // which command you want on the timer goes here.
+        /* Normally we would call checkHdr, but our "fake" header does not need to be checked.
+    'handleLocalCommand constructs and sends our periodic packet.*/
+        handleLocalCommand(packet_fake_hdr, (uint8_t *)packet_fake_hdr + hdr_size, (uint8_t *)outgoingPacket);
+    }
+    PacketUpdateTime = millis() % PACKET_UPDATE_PERIOD;
 
-    Serial.println("Reading shield flow meter...");
-    sShieldFlow = shieldFlow.read(Serial);
-    printFlow(sShieldFlow,Serial);
-
-    delay(3000);
-
-    // /* PacketSerial.update() reads and processes incoming packets.
-    //   Returns 0 if it successfully processed the packet.
-    //   Returns nonzero error code if it does not. */
-    // if (downStream1.update() != 0)
-    // {
-    //   // Sends out an error packet if incoming packet was not able to be successfully processed.
-    //   badPacketReceived(&downStream1);
-    // }
+    /* PacketSerial.update() reads and processes incoming packets.
+      Returns 0 if it successfully processed the packet.
+      Returns nonzero error code if it does not. */
+    if (downStream1.update() != 0)
+    {
+        // Sends out an error packet if incoming packet was not able to be successfully processed.
+        badPacketReceived(&downStream1);
+    }
 }
 
 /*******************************************************************************
  * Testing functions
  *******************************************************************************/
+// Prints out flow meter readout in printPort
 void printFlow(sMagnetFlow &flow, HardwareSerial &printPort)
 {
     String pressure("Pressure = ");
@@ -205,7 +211,8 @@ void printFlow(sMagnetFlow &flow, HardwareSerial &printPort)
     mass += String(" slpm");
     printPort.println(mass);
 }
-// Prints out anything in the serial buffer
+
+// Prints out anything from readPort into printPort
 void serialPrint(HardwareSerial &readPort, HardwareSerial &printPort)
 {
     if (readPort.available())
@@ -539,10 +546,16 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     /* Flow readings */
     case eWhisperStack:
     {
+        sStackFlow = stackFlow.read();
+        memcpy(buffer, (uint8_t *)&sStackFlow, sizeof(sStackFlow));
+        retval = (int)sizeof(sStackFlow);
         break;
     }
     case eWhisperShield:
     {
+        sShieldFlow = shieldFlow.read();
+        memcpy(buffer, (uint8_t *)&sShieldFlow, sizeof(sShieldFlow));
+        retval = (int)sizeof(sShieldFlow);
         break;
     }
     /* Temperature probes */
@@ -642,6 +655,10 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
         break;
     case eWhisperBoth:
     {
+        sBothFlow.stack = stackFlow.read();
+        sBothFlow.shield = shieldFlow.read();
+        memcpy(buffer, (uint8_t *)&sBothFlow, sizeof(sBothFlow));
+        retval = sizeof(sBothFlow);
         break;
     }
     case ePressure:
