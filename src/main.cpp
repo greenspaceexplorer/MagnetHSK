@@ -18,6 +18,7 @@
 /* switches LED state*/
 void switch_LED(uint8_t LED);
 void serialPrint(HardwareSerial &readPort, HardwareSerial &printPort);
+void printFlow(sMagnetFlow &flow, HardwareSerial &printPort);
 
 /*******************************************************************************
  * Global Variables 
@@ -114,8 +115,10 @@ uint8_t packet_fake[5] = {0}; // array for using existing functions to implement
 
 AnalogPressure gp50(160, A0, 12); // gp50 analog pressure transducer
 uint16_t timeout = 100;
-MagnetWhisper stackFlow(Serial5,timeout);
-MagnetWhisper shieldFlow(Serial1,timeout);
+MagnetWhisper stackFlow(Serial5, timeout);
+MagnetWhisper shieldFlow(Serial1, timeout);
+sMagnetFlow sStackFlow;
+sMagnetFlow sShieldFlow;
 
 // Debugging stuff
 int byteme = 0;
@@ -156,14 +159,15 @@ void loop()
     }
     LEDUpdateTime = millis() % LED_UPDATE_PERIOD;
 
-
-    Serial.println("*** Reading out flowmeter ***");
-    stackFlow.read(Serial);
-    Serial.println(stackFlow.getBuffer());
+    Serial.println("Reading stack flow meter...");
+    sStackFlow = stackFlow.read(Serial);
+    printFlow(sStackFlow,Serial);
     delay(100);
-    shieldFlow.read(Serial);
-    Serial.println(shieldFlow.getBuffer());
-    
+
+    Serial.println("Reading shield flow meter...");
+    sShieldFlow = shieldFlow.read(Serial);
+    printFlow(sShieldFlow,Serial);
+
     delay(3000);
 
     // /* PacketSerial.update() reads and processes incoming packets.
@@ -179,6 +183,28 @@ void loop()
 /*******************************************************************************
  * Testing functions
  *******************************************************************************/
+void printFlow(sMagnetFlow &flow, HardwareSerial &printPort)
+{
+    String pressure("Pressure = ");
+    pressure += String(flow.pressure);
+    pressure += String(" psia");
+    printPort.println(pressure);
+
+    String temp("Temperature = ");
+    temp += String(flow.temperature);
+    temp += String(" deg C");
+    printPort.println(temp);
+
+    String vol("Volumetric Flow = ");
+    vol += String(flow.volume);
+    vol += String(" slpm");
+    printPort.println(vol);
+
+    String mass("Mass Flow = ");
+    mass += String(flow.mass);
+    mass += String(" slpm");
+    printPort.println(mass);
+}
 // Prints out anything in the serial buffer
 void serialPrint(HardwareSerial &readPort, HardwareSerial &printPort)
 {

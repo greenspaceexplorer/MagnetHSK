@@ -12,7 +12,7 @@ Since the TI Tiva libraries hate my macbook, I switched to the open source [Plat
 - That's it!
 
 ## Magnet Housekeeping Commands
-The magnet housekeeping command struct is defined in [include/MagnetHSK.h](include/MagnetHSK.h). Available commands are:
+The magnet housekeeping command struct is defined in [lib/MagnetHSK_protocol/MagnetHSK_protocol.h](lib/MagnetHSK_protocol/MagnetHSK_protocol.h). Available commands are:
 
 | #   |   ID   | Priority | Name                     | Description                                                      |
 | --- |:------:|:--------:| ------------------------ | ---------------------------------------------------------------- |
@@ -60,6 +60,31 @@ TODO: define data structures for each command
 ### Stack Pressure Transducer
 
 ### Whisper Flow Meters
+
+The magnet flow meters read the temperature, pressure, mass flow rate, and volumetric flow rate of the boiloff from the stack and shield connections. 
+
+**HSK Structs**
+```c++
+/* Magnet Flowmeters */
+// subhsk_id=0x02, commands associated with this struct: eWhisperStack, eWhisperShield
+struct sMagnetFlow
+{
+    float pressure;     // flowmeter pressure
+    float temperature;  // flowmeter temperature
+    float volume;       // flowmeter volume flow
+    float mass;         // flowmeter mass flow
+} __attribute__((packed));
+
+// subhsk_id=0x02, command associated with this struct: eWhisperBoth
+struct sMagnetFlows
+{
+    sMagnetFlow stack;
+    sMagnetFlow shield;
+} __attribute__((packed));
+```
+
+**Documentation**
+- [User Manual](docs/whisper-flow-meter-manual.pdf)
 
 ### External OneWire Temperature Sensors
 

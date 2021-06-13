@@ -151,24 +151,24 @@ sMagnetFlow MagnetWhisper::read(HardwareSerial &printPort){
             switch (measureCount)
             {
             case 1:
-                Serial.print("Pressure = ");
+                // Serial.print("Pressure = ");
                 magnetFlow.pressure = flowStr.toFloat();
-                Serial.println(magnetFlow.pressure);
+                // Serial.println(magnetFlow.pressure);
                 break;
             case 2:
-                Serial.print("Temperature = ");
+                // Serial.print("Temperature = ");
                 magnetFlow.temperature= flowStr.toFloat();
-                Serial.println(magnetFlow.temperature);
+                // Serial.println(magnetFlow.temperature);
                 break;
             case 3:
-                Serial.print("Volumetric Flow = ");
+                // Serial.print("Volumetric Flow = ");
                 magnetFlow.volume = flowStr.toFloat();
-                Serial.println(magnetFlow.volume);
+                // Serial.println(magnetFlow.volume);
                 break;
             case 4:
-                Serial.print("Mass Flow = ");
+                // Serial.print("Mass Flow = ");
                 magnetFlow.mass= flowStr.toFloat();
-                Serial.println(magnetFlow.mass);
+                // Serial.println(magnetFlow.mass);
                 break;
             
             default:
