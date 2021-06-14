@@ -132,8 +132,8 @@ uint8_t RTDSPI_MISO = 13;
 
 // Debugging stuff
 int byteme = 0;
-HardwareSerial serialOut = Serial; // computer (DEBUG)
-// HardwareSerial &serialOut = Serial3; // MainHSK
+// HardwareSerial serialOut = Serial; // computer (DEBUG)
+HardwareSerial &serialOut = Serial3; // MainHSK
 
 /*******************************************************************************
 * Main program
@@ -169,6 +169,7 @@ void loop()
     packet_fake_hdr->dst = myID;
     packet_fake_hdr->src = eSFC;
     packet_fake_hdr->len = 0;         // this should always be 0, especially because the array is just enough to hold the header.
+    // packet_fake_hdr->cmd = eTest;
     packet_fake_hdr->cmd = eWhisperBoth; // which command you want on the timer goes here.
 
     periodicPacket(packet_fake_hdr,3000);
@@ -176,11 +177,11 @@ void loop()
     /* PacketSerial.update() reads and processes incoming packets.
       Returns 0 if it successfully processed the packet.
       Returns nonzero error code if it does not. */
-    if (downStream1.update() != 0)
-    {
-        // Sends out an error packet if incoming packet was not able to be successfully processed.
-        badPacketReceived(&downStream1);
-    }
+    // if (downStream1.update() != 0)
+    // {
+    //     // Sends out an error packet if incoming packet was not able to be successfully processed.
+    //     badPacketReceived(&downStream1);
+    // }
 }
 
 /*******************************************************************************
@@ -668,12 +669,7 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     {
         sBothFlow.stack = stackFlow.read();
         sBothFlow.shield = shieldFlow.read();
-        // char test[] = "ABCDEFG"; // DEBUG
         memcpy(buffer, (uint8_t *)&sBothFlow, sizeof(sBothFlow));
-        // memcpy(buffer, (uint8_t *)&test, sizeof(test));
-        // printFlow(sBothFlow.stack,serialOut); // DEBUG
-        // printFlow(sBothFlow.shield,serialOut); // DEBUG
-
         retval = sizeof(sBothFlow);
         break;
     }
@@ -701,6 +697,13 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     case eALL:
     {
         // should iterate through all commands or make a new struct?
+        break;
+    }
+    case eTest:
+    {
+        char test[] = "\nI'm a testy little packet!\n";
+        memcpy(buffer, (uint8_t *)&test, sizeof(test));
+        retval = sizeof(test);
         break;
     }
     case eReset:

@@ -45,7 +45,8 @@ typedef enum MagnetHSK_cmd
     ePressure = 0x1E,
     eMagField = 0x1F,
     eISR = 0xA0,
-    eALL = 0xA2
+    eALL = 0xA2,
+    eTest = 0x91
 } MagnetHSK_cmd;
 
 /*******************************************************************************
@@ -106,6 +107,11 @@ struct sMagnetPressure
 struct sMagnetField
 {
     double field; // placeholder for when Noah adds a b-field probe
+} __attribute__((packed));
+
+struct sTestPacket
+{
+    char test[28];
 } __attribute__((packed));
 
 #endif // MAGNETHSK_PROTOCOL
