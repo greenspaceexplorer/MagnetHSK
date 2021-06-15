@@ -132,7 +132,7 @@ uint8_t RTDSPI_MISO = 13;
 
 // Debugging stuff
 int byteme = 0;
-// HardwareSerial serialOut = Serial; // computer (DEBUG)
+// HardwareSerial &serialOut = Serial; // computer (DEBUG)
 HardwareSerial &serialOut = Serial3; // MainHSK
 
 /*******************************************************************************
