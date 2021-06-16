@@ -1,5 +1,29 @@
 #include "MagnetRTD.h"
 
+MagnetRTD::MagnetRTD(SPIClass *mySPI, uint8_t clock, uint8_t chip_select){
+    // Set internal variables
+    thisSPI = mySPI;
+    clk = clock;
+    cs = chip_select;
+    
+    
+}
+//------------------------------------------------------------------------------
+
+MagnetRTD::~MagnetRTD(){}
+
+//------------------------------------------------------------------------------
+void MagnetRTD::setup(){
+    // Initialize SPI communication on the housekeeping board
+    pinMode(clk,OUTPUT);
+    digitalWrite(clk,1);
+    thisSPI->begin();
+    pinMode(cs,OUTPUT);
+    configure_channels();
+    configure_memory_table();
+    configure_global_parameters();
+    
+}
 //------------------------------------------------------------------------------
 
 int MagnetRTD::wait_for_process_to_finish(uint8_t chip_select)
@@ -16,7 +40,7 @@ int MagnetRTD::wait_for_process_to_finish(uint8_t chip_select)
     while (process_finished == 0)
     {
         data =
-            transfer_byte(chip_select, READ_FROM_RAM, COMMAND_STATUS_REGISTER, 0);
+            this->transfer_byte(chip_select, READ_FROM_RAM, COMMAND_STATUS_REGISTER, 0);
         process_finished = data & 0x40;
         if ((millis() - StartTime) > MaxWaitSpi)
         {
@@ -32,6 +56,13 @@ int MagnetRTD::wait_for_process_to_finish(uint8_t chip_select)
 
 //------------------------------------------------------------------------------
 
+uint16_t MagnetRTD::get_start_address(uint16_t base_address, uint8_t channel_number)
+{
+  return base_address + 4 * (channel_number-1);
+}
+
+//------------------------------------------------------------------------------
+
 uint8_t MagnetRTD::transfer_byte(uint8_t chip_select, uint8_t ram_read_or_write,
                                  uint16_t start_address, uint8_t input_data)
 {
@@ -41,8 +72,24 @@ uint8_t MagnetRTD::transfer_byte(uint8_t chip_select, uint8_t ram_read_or_write,
     tx[2] = (uint8_t)(start_address >> 8);
     tx[1] = (uint8_t)start_address;
     tx[0] = input_data;
-    spi_transfer_block(chip_select, tx, rx, 4);
+    this->spi_transfer_block(chip_select, tx, rx, 4);
     return rx[0];
+}
+
+//------------------------------------------------------------------------------
+
+bool MagnetRTD::is_number_in_array(uint8_t number, uint8_t *array, uint8_t array_length)
+// Find out if a number is an element in an array
+{
+  bool found = false;
+  for (uint8_t i=0; i< array_length; i++)
+  {
+    if (number == array[i])
+    {
+      found = true;
+    }
+  }
+  return found;
 }
 
 //------------------------------------------------------------------------------
@@ -61,7 +108,7 @@ uint32_t MagnetRTD::transfer_four_bytes(uint8_t chip_select, uint8_t ram_read_or
     tx[1] = (uint8_t)(input_data >> 8);
     tx[0] = (uint8_t)input_data;
 
-    spi_transfer_block(chip_select, tx, rx, 7);
+    this->spi_transfer_block(chip_select, tx, rx, 7);
 
     output_data = (uint32_t)rx[3] << 24 | (uint32_t)rx[2] << 16 |
                   (uint32_t)rx[1] << 8 | (uint32_t)rx[0];
@@ -96,10 +143,10 @@ float MagnetRTD::returnResistance(uint8_t chip_select, uint8_t channel_number)
     {
         int32_t raw_data;
         float voltage_or_resistance_result;
-        uint16_t start_address = get_start_address(VOUT_CH_BASE, channel_number);
+        uint16_t start_address = this->get_start_address(VOUT_CH_BASE, channel_number);
 
         raw_data =
-            transfer_four_bytes(chip_select, READ_FROM_RAM, start_address, 0);
+            this->transfer_four_bytes(chip_select, READ_FROM_RAM, start_address, 0);
         voltage_or_resistance_result = (float)raw_data / 1024;
         return voltage_or_resistance_result;
     }
@@ -120,13 +167,13 @@ float MagnetRTD::returnTemperature(uint8_t chip_select, uint8_t channel_number)
         uint32_t raw_data;
         uint8_t fault_data;
         uint16_t start_address =
-            get_start_address(CONVERSION_RESULT_MEMORY_BASE, channel_number);
+            this->get_start_address(CONVERSION_RESULT_MEMORY_BASE, channel_number);
         uint32_t raw_conversion_result;
         int32_t signed_data;
         float scaled_result;
 
         raw_data =
-            transfer_four_bytes(chip_select, READ_FROM_RAM, start_address, 0);
+            this->transfer_four_bytes(chip_select, READ_FROM_RAM, start_address, 0);
 
         // 24 LSB's are conversion result
         raw_conversion_result = raw_data & 0xFFFFFF;
@@ -152,9 +199,9 @@ float MagnetRTD::returnTemperature(uint8_t chip_select, uint8_t channel_number)
 int MagnetRTD::convert_channel(uint8_t chip_select, uint8_t channel_number)
 {
     // Start conversion
-    transfer_byte(chip_select, WRITE_TO_RAM, COMMAND_STATUS_REGISTER,
+    this->transfer_byte(chip_select, WRITE_TO_RAM, COMMAND_STATUS_REGISTER,
                   CONVERSION_CONTROL_BYTE | channel_number);
     int goAhead;
-    goAhead = wait_for_process_to_finish(chip_select);
+    goAhead = this->wait_for_process_to_finish(chip_select);
     return goAhead;
 }

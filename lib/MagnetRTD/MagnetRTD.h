@@ -10,6 +10,9 @@
 #include <inc/hw_flash.h>
 #include <driverlib/sysctl.h>
 
+// include functions to configure the LTC2983 chip
+#include "configFunctions.h"
+#include "supportFunctions.h"
 
 //**********************************************************************************************************
 // -- HIGH-LOW and CONSTANTS--
@@ -42,8 +45,10 @@
 
 class MagnetRTD{
     public:
-        MagnetRTD(SPIClass *mySPI);
+        MagnetRTD(SPIClass *mySPI, uint8_t clock, uint8_t chip_select);
         ~MagnetRTD();
+        
+        void setup();
         
         float readTemp(uint8_t cmd);
         // 9-15 are temperature readings
@@ -66,7 +71,6 @@ class MagnetRTD{
         // eRTDall = 0x1C
 
 
-    private:
         // functions
         float returnResistance(uint8_t chip_select, uint8_t channel_number);
 
@@ -75,6 +79,8 @@ class MagnetRTD{
         int wait_for_process_to_finish(uint8_t chip_select);
 
         uint16_t get_start_address(uint16_t base_address, uint8_t channel_number);
+
+        bool is_number_in_array(uint8_t number, uint8_t *array, uint8_t array_length);
 
         uint8_t transfer_byte(uint8_t chip_select, uint8_t ram_read_or_write,
                               uint16_t start_address, uint8_t input_data);
@@ -87,6 +93,10 @@ class MagnetRTD{
 
         int convert_channel(uint8_t chip_select, uint8_t channel_number);
         
+        uint8_t clk;
+        uint8_t cs;
+
+    private:
         // variables
         SPIClass *thisSPI;
 };

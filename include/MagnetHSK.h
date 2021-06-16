@@ -7,6 +7,7 @@
 #include <driverlib/sysctl.h>
 // For magnet housekeeping devices
 #include <MagnetWhisper.h>
+#include <MagnetRTD.h>
 #include <AnalogPressure.h>
 #include <configConstants.h>
 #include <configFunctions.h>

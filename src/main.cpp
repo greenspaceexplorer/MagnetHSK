@@ -130,10 +130,11 @@ uint8_t RTDSPI_CS  = 12;
 uint8_t RTDSPI_MOSI = 8;
 uint8_t RTDSPI_MISO = 13;
 
-// Debugging stuff
-int byteme = 0;
-// HardwareSerial &serialOut = Serial; // computer (DEBUG)
-HardwareSerial &serialOut = Serial3; // MainHSK
+MagnetRTD magnetRTDs(&RTDSPI, RTDSPI_SCK, RTDSPI_CS);
+
+// Set output serial port
+HardwareSerial &serialOut = Serial; // computer (DEBUG)
+// HardwareSerial &serialOut = Serial3; // MainHSK
 
 /*******************************************************************************
 * Main program
@@ -147,7 +148,8 @@ void setup()
     stackFlow.setup();
     shieldFlow.setup();
     
-    // initialize magnet SPI
+    // initialize magnet RTDs
+    magnetRTDs.setup();
     
 
     // setup an LED for blinnkery
@@ -158,7 +160,7 @@ void setup()
 
     analogReadResolution(gp50.getADCbits());
     
-    // serialOut.println("\n***RESTART***"); // DEBUG
+    serialOut.println("\n***RESTART***"); // DEBUG
 }
 
 void loop()
@@ -170,7 +172,7 @@ void loop()
     packet_fake_hdr->src = eSFC;
     packet_fake_hdr->len = 0;         // this should always be 0, especially because the array is just enough to hold the header.
     // packet_fake_hdr->cmd = eTest;
-    packet_fake_hdr->cmd = eWhisperBoth; // which command you want on the timer goes here.
+    packet_fake_hdr->cmd = eTopNonStackRTDohms; // which command you want on the timer goes here.
 
     periodicPacket(packet_fake_hdr,3000);
     
@@ -475,9 +477,12 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     }
     case eTopNonStackRTDohms:
     {
-        float ResRead = returnResistance(CHIP_SELECT, 6);
-        memcpy(buffer, (uint8_t *)&ResRead, sizeof(ResRead));
-        retval = (int)sizeof(ResRead);
+        serialOut.print("Top non-stack = ");
+        float resistance = magnetRTDs.returnResistance(magnetRTDs.cs,6);
+        // float ResRead = returnResistance(CHIP_SELECT, 6);
+        serialOut.println(resistance);
+        memcpy(buffer, (uint8_t *)&resistance, sizeof(resistance));
+        retval = (int)sizeof(resistance);
         break;
     }
     case eBottomStackRTDohms:
