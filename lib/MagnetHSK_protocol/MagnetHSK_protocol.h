@@ -17,12 +17,12 @@ typedef enum MagnetHSK_cmd
     eShieldRTD1ohms = 0x06,
     eShieldRTD2ohms = 0x07,
     // 9-15 are temperature readings
-    eTopStackRTDtemp = 0x08,
-    eTopNonStackRTDtemp = 0x09,
-    eBottomStackRTDtemp = 0x0A,
-    eBottomNonStackRTDtemp = 0x0B,
-    eShieldRTD1temp = 0x0C,
-    eShieldRTD2temp = 0x0D,
+    eTopStackRTDcels = 0x08,
+    eTopNonStackRTDcels = 0x09,
+    eBottomStackRTDcels = 0x0A,
+    eBottomNonStackRTDcels = 0x0B,
+    eShieldRTD1cels = 0x0C,
+    eShieldRTD2cels = 0x0D,
     // 16-18 are flow meter readings
     eWhisperStack = 0x0E,
     eWhisperShield = 0x0F,
@@ -40,7 +40,8 @@ typedef enum MagnetHSK_cmd
     // 26 is read pressure
     ePressureRegular = 0x1A, // why are there two pressures?
     eHeliumLevels = 0x1B,
-    eRTDall = 0x1C,
+    eRTDallOhms = 0x20,
+    eRTDallCels = 0x1C,
     eWhisperBoth = 0x1D,
     ePressure = 0x1E,
     eMagField = 0x1F,

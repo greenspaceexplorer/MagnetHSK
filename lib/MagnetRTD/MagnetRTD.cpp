@@ -24,8 +24,136 @@ void MagnetRTD::setup(){
     configure_global_parameters();
     
 }
+
 //------------------------------------------------------------------------------
 
+float MagnetRTD::readTemp(uint8_t cmd)
+{   
+    float out;
+    switch (cmd)
+    {
+    case eTopStackRTDcels:
+    {
+        out = this->returnTemperature(cs,TopStack);
+        break;
+    }
+    case eTopNonStackRTDcels:
+    {
+        out = this->returnTemperature(cs,TopNonStack);
+        break;
+    }
+    case eBottomStackRTDcels:
+    {
+        out = this->returnTemperature(cs,BottomStack);
+        break;
+    }
+    case eBottomNonStackRTDcels:
+    {
+        out = this->returnTemperature(cs,BottomNonStack);
+        break;
+    }
+    case eShieldRTD1cels:
+    {
+        out = this->returnTemperature(cs,Shield1);
+        break;
+    }
+    case eShieldRTD2cels:
+    {
+        out = this->returnTemperature(cs,Shield2);
+        break;
+    }
+    default:
+    {
+        out = -1.0; // invalid command
+        break;
+    }
+    }
+    return out;
+}
+
+//------------------------------------------------------------------------------
+
+float MagnetRTD::readResist(uint8_t cmd)
+{   
+    float out;
+    switch (cmd)
+    {
+    case eTopStackRTDohms:
+    {
+        out = this->returnResistance(cs,TopStack);
+        break;
+    }
+    case eTopNonStackRTDohms:
+    {
+        out = this->returnResistance(cs,TopNonStack);
+        break;
+    }
+    case eBottomStackRTDohms:
+    {
+        out = this->returnResistance(cs,BottomStack);
+        break;
+    }
+    case eBottomNonStackRTDohms:
+    {
+        out = this->returnResistance(cs,BottomNonStack);
+        break;
+    }
+    case eShieldRTD1ohms:
+    {
+        out = this->returnResistance(cs,Shield1);
+        break;
+    }
+    case eShieldRTD2ohms:
+    {
+        out = this->returnResistance(cs,Shield2);
+        break;
+    }
+    default:
+    {
+        out = -1.0; // invalid command
+        break;
+    }
+    }
+    return out;
+}
+
+//------------------------------------------------------------------------------
+
+sMagnetRTD MagnetRTD::readAll(uint8_t cmd)
+{
+    sMagnetRTD out;
+
+    if (cmd == eRTDallCels)
+    {
+        out.Top_stack    = this->readTemp(eTopStackRTDcels);
+        out.Top_nonstack = this->readTemp(eTopNonStackRTDcels);
+        out.Btm_stack    = this->readTemp(eBottomStackRTDcels);
+        out.Btm_stack    = this->readTemp(eBottomNonStackRTDcels);
+        out.Shield1      = this->readTemp(eShieldRTD1cels);
+        out.Shield2      = this->readTemp(eShieldRTD2cels);
+    }
+    else if (cmd == eRTDallOhms)
+    {
+        out.Top_stack    = this->readResist(eTopStackRTDohms);
+        out.Top_nonstack = this->readResist(eTopNonStackRTDohms);
+        out.Btm_stack    = this->readResist(eBottomStackRTDohms);
+        out.Btm_stack    = this->readResist(eBottomNonStackRTDohms);
+        out.Shield1      = this->readResist(eShieldRTD1ohms);
+        out.Shield2      = this->readResist(eShieldRTD2ohms);
+    }
+    else
+    {
+        out.Top_stack    = -1.; 
+        out.Top_nonstack = -1.; 
+        out.Btm_stack    = -1.; 
+        out.Btm_stack    = -1.; 
+        out.Shield1      = -1.; 
+        out.Shield2      = -1.; 
+    }
+    return out;
+}
+
+//------------------------------------------------------------------------------
 int MagnetRTD::wait_for_process_to_finish(uint8_t chip_select)
 {
     uint8_t process_finished = 0;

@@ -56,6 +56,9 @@ The magnet housekeeping command struct is defined in [lib/MagnetHSK_protocol/Mag
 The RTDs inside the magnet are supposed to have a resistance of 100 Ohms at 273 K, and 1.55 Ohms at 4.2 K. However, their accuracy is secondary to their indication of status changes inside the magnet (indeed, they have not been calibrated in >25 years!). They should give an indication of 20-21 Ohms at 77 K (for LN2), and 2-3 Ohms at 4 K (for LHe). 
 They are simple 2-wire probes which are read out using the LTC2983 multi-sensor high accuracy digital temperature measurement system.
 
+**Documentation**
+- [LTC2983 Temperature Measuring Chip](docs/temp-measuring_2983fc.pdf)
+
 ### Liquid Helium Level Sensors
 
 ### Stack Pressure Transducer

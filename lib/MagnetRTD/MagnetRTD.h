@@ -14,6 +14,9 @@
 #include "configFunctions.h"
 #include "supportFunctions.h"
 
+// for structs and commands
+#include <MagnetHSK_protocol.h>
+
 //**********************************************************************************************************
 // -- HIGH-LOW and CONSTANTS--
 //**********************************************************************************************************
@@ -43,6 +46,15 @@
 #define VOLTAGE (uint8_t)0x01
 #define TEMPERATURE (uint8_t)0x02
 
+enum rtdChannel{
+    TopStack       = 3,
+    TopNonStack    = 6,
+    BottomStack    = 9,
+    BottomNonStack = 12,
+    Shield1        = 16,
+    Shield2        = 20
+};
+
 class MagnetRTD{
     public:
         MagnetRTD(SPIClass *mySPI, uint8_t clock, uint8_t chip_select);
@@ -68,9 +80,13 @@ class MagnetRTD{
         // eShieldRTD1ohms = 0x06
         // eShieldRTD2ohms = 0x07
         
-        // eRTDall = 0x1C
+        sMagnetRTD readAll(uint8_t cmd);
+        // eRTDallOhms = 0x20
+        // eRTDallCels = 0x1C
 
 
+
+    private:
         // functions
         float returnResistance(uint8_t chip_select, uint8_t channel_number);
 
@@ -93,11 +109,9 @@ class MagnetRTD{
 
         int convert_channel(uint8_t chip_select, uint8_t channel_number);
         
+        // variables
         uint8_t clk;
         uint8_t cs;
-
-    private:
-        // variables
         SPIClass *thisSPI;
 };
 #endif // MAGNETRTD_H

@@ -19,6 +19,8 @@
 void blinkLED(uint8_t LED, uint period);
 void serialPrint(HardwareSerial &readPort, HardwareSerial &printPort);
 void printFlow(sMagnetFlow &flow, HardwareSerial &printPort);
+void printRTDtemps(sMagnetRTD &rtds, HardwareSerial &printPort);
+void printRTDresists(sMagnetRTD &rtds, HardwareSerial &printPort);
 void periodicPacket(housekeeping_hdr_t *hsk_header,uint period);
 
 /*******************************************************************************
@@ -92,7 +94,6 @@ uint32_t ADCLHeFar[1];
 uint32_t ADCLHeNear[1];
 sHeliumLevels *helium;
 uint16_t helium_a[2] = {0};
-sMagnetRTD *magnetrtds;
 uint32_t magnetrtds_a[6] = {0};
 sMagnetFlows *magnetflows;
 uint64_t magnetflows_a[64] = {0};
@@ -131,6 +132,7 @@ uint8_t RTDSPI_MOSI = 8;
 uint8_t RTDSPI_MISO = 13;
 
 MagnetRTD magnetRTDs(&RTDSPI, RTDSPI_SCK, RTDSPI_CS);
+sMagnetRTD sAllMagnetRTDs;
 
 // Set output serial port
 HardwareSerial &serialOut = Serial; // computer (DEBUG)
@@ -160,7 +162,7 @@ void setup()
 
     analogReadResolution(gp50.getADCbits());
     
-    serialOut.println("\n***RESTART***"); // DEBUG
+    // serialOut.println("\n***RESTART***"); // DEBUG
 }
 
 void loop()
@@ -172,7 +174,7 @@ void loop()
     packet_fake_hdr->src = eSFC;
     packet_fake_hdr->len = 0;         // this should always be 0, especially because the array is just enough to hold the header.
     // packet_fake_hdr->cmd = eTest;
-    packet_fake_hdr->cmd = eTopNonStackRTDohms; // which command you want on the timer goes here.
+    packet_fake_hdr->cmd = eRTDallOhms; // which command you want on the timer goes here.
 
     periodicPacket(packet_fake_hdr,3000);
     
@@ -233,6 +235,78 @@ void printFlow(sMagnetFlow &flow, HardwareSerial &printPort)
     mass += String(flow.mass);
     mass += String(" slpm");
     printPort.println(mass);
+}
+
+// Prints out magnet RTD temperatures in printPort
+void printRTDtemps(sMagnetRTD &rtds, HardwareSerial &printPort)
+{
+    String units(" deg C");
+
+    String ts("\nTop Stack = ");
+    ts += String(rtds.Top_stack);
+    ts += units;
+    printPort.println(ts);
+    
+    String tns("Top Non Stack = ");
+    tns += String(rtds.Top_nonstack);
+    tns += units;
+    printPort.println(tns);
+
+    String bs("Bottom Stack = ");
+    bs += String(rtds.Btm_stack);
+    bs += units;
+    printPort.println(bs);
+
+    String bns("Bottom Non Stack = ");
+    bns += String(rtds.Btm_nonstack);
+    bns += units;
+    printPort.println(bns);
+    
+    String s1("Shield 1 = ");
+    s1 += String(rtds.Shield1);
+    s1 += units;
+    printPort.println(s1);
+    
+    String s2("Shield 2 = ");
+    s2 += String(rtds.Shield1);
+    s2 += units;
+    printPort.println(s2);
+}
+
+// Prints out magnet RTD temperatures in printPort
+void printRTDresists(sMagnetRTD &rtds, HardwareSerial &printPort)
+{
+    String units(" Ohms");
+
+    String ts("\nTop Stack = ");
+    ts += String(rtds.Top_stack);
+    ts += units;
+    printPort.println(ts);
+    
+    String tns("Top Non Stack = ");
+    tns += String(rtds.Top_nonstack);
+    tns += units;
+    printPort.println(tns);
+
+    String bs("Bottom Stack = ");
+    bs += String(rtds.Btm_stack);
+    bs += units;
+    printPort.println(bs);
+
+    String bns("Bottom Non Stack = ");
+    bns += String(rtds.Btm_nonstack);
+    bns += units;
+    printPort.println(bns);
+    
+    String s1("Shield 1 = ");
+    s1 += String(rtds.Shield1);
+    s1 += units;
+    printPort.println(s1);
+    
+    String s2("Shield 2 = ");
+    s2 += String(rtds.Shield1);
+    s2 += units;
+    printPort.println(s2);
 }
 
 // Prints out anything from readPort into printPort
@@ -470,94 +544,87 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     /* Resistance measurements */
     case eTopStackRTDohms:
     {
-        float ResRead = returnResistance(CHIP_SELECT, 3);
-        memcpy(buffer, (uint8_t *)&ResRead, sizeof(ResRead));
-        retval = (int)sizeof(ResRead);
+        float rtdVal = magnetRTDs.readResist(localCommand);
+        memcpy(buffer, (uint8_t *)&rtdVal, sizeof(rtdVal));
+        retval = (int)sizeof(rtdVal);
         break;
     }
     case eTopNonStackRTDohms:
     {
-        serialOut.print("Top non-stack = ");
-        float resistance = magnetRTDs.returnResistance(magnetRTDs.cs,6);
-        // float ResRead = returnResistance(CHIP_SELECT, 6);
-        serialOut.println(resistance);
-        memcpy(buffer, (uint8_t *)&resistance, sizeof(resistance));
-        retval = (int)sizeof(resistance);
+        float rtdVal = magnetRTDs.readResist(localCommand);
+        memcpy(buffer, (uint8_t *)&rtdVal, sizeof(rtdVal));
+        retval = (int)sizeof(rtdVal);
         break;
     }
     case eBottomStackRTDohms:
     {
-        float ResRead = returnResistance(CHIP_SELECT, 9);
-        memcpy(buffer, (uint8_t *)&ResRead, sizeof(ResRead));
-        retval = (int)sizeof(ResRead);
+        float rtdVal = magnetRTDs.readResist(localCommand);
+        memcpy(buffer, (uint8_t *)&rtdVal, sizeof(rtdVal));
+        retval = (int)sizeof(rtdVal);
         break;
     }
     case eBottomNonStackRTDohms:
     {
-        float ResRead = returnResistance(CHIP_SELECT, 12);
-        memcpy(buffer, (uint8_t *)&ResRead, sizeof(ResRead));
-        retval = (int)sizeof(ResRead);
+        float rtdVal = magnetRTDs.readResist(localCommand);
+        memcpy(buffer, (uint8_t *)&rtdVal, sizeof(rtdVal));
+        retval = (int)sizeof(rtdVal);
         break;
     }
     case eShieldRTD1ohms:
     {
-        float ResRead = returnResistance(CHIP_SELECT, 16);
-        memcpy(buffer, (uint8_t *)&ResRead, sizeof(ResRead));
-        retval = (int)sizeof(ResRead);
+        float rtdVal = magnetRTDs.readResist(localCommand);
+        memcpy(buffer, (uint8_t *)&rtdVal, sizeof(rtdVal));
+        retval = (int)sizeof(rtdVal);
         break;
     }
     case eShieldRTD2ohms:
     {
-        float ResRead = returnResistance(CHIP_SELECT, 20);
-        memcpy(buffer, (uint8_t *)&ResRead, sizeof(ResRead));
-        retval = (int)sizeof(ResRead);
+        float rtdVal = magnetRTDs.readResist(localCommand);
+        memcpy(buffer, (uint8_t *)&rtdVal, sizeof(rtdVal));
+        retval = (int)sizeof(rtdVal);
         break;
     }
     /* Temperature measurements */
-    case eTopStackRTDtemp:
+    case eTopStackRTDcels:
     {
-        // topstack
-        float TempRead = returnTemperature(CHIP_SELECT, 3);
-        memcpy(buffer, (uint8_t *)&TempRead, sizeof(TempRead));
-        retval = sizeof(TempRead);
+        float rtdVal = magnetRTDs.readResist(localCommand);
+        memcpy(buffer, (uint8_t *)&rtdVal, sizeof(rtdVal));
+        retval = (int)sizeof(rtdVal);
         break;
     }
-    case eTopNonStackRTDtemp:
+    case eTopNonStackRTDcels:
     {
-        // topnonstack
-        float TempRead = returnTemperature(CHIP_SELECT, 6);
-        memcpy(buffer, (uint8_t *)&TempRead, sizeof(TempRead));
-        retval = sizeof(TempRead);
+        float rtdVal = magnetRTDs.readResist(localCommand);
+        memcpy(buffer, (uint8_t *)&rtdVal, sizeof(rtdVal));
+        retval = (int)sizeof(rtdVal);
         break;
     }
-    case eBottomStackRTDtemp:
+    case eBottomStackRTDcels:
     {
-        // bottom stack
-        float TempRead = returnTemperature(CHIP_SELECT, 9);
-        memcpy(buffer, (uint8_t *)&TempRead, sizeof(TempRead));
-        retval = (int)sizeof(TempRead);
+        float rtdVal = magnetRTDs.readResist(localCommand);
+        memcpy(buffer, (uint8_t *)&rtdVal, sizeof(rtdVal));
+        retval = (int)sizeof(rtdVal);
         break;
     }
-    case eBottomNonStackRTDtemp:
+    case eBottomNonStackRTDcels:
     {
-        // bottom nonstack
-        float TempRead = returnTemperature(CHIP_SELECT, 12);
-        memcpy(buffer, (uint8_t *)&TempRead, sizeof(TempRead));
-        retval = (int)sizeof(TempRead);
+        float rtdVal = magnetRTDs.readResist(localCommand);
+        memcpy(buffer, (uint8_t *)&rtdVal, sizeof(rtdVal));
+        retval = (int)sizeof(rtdVal);
         break;
     }
-    case eShieldRTD1temp:
+    case eShieldRTD1cels:
     {
-        float TempRead = returnTemperature(CHIP_SELECT, 16);
-        memcpy(buffer, (uint8_t *)&TempRead, sizeof(TempRead));
-        retval = (int)sizeof(TempRead);
+        float rtdVal = magnetRTDs.readResist(localCommand);
+        memcpy(buffer, (uint8_t *)&rtdVal, sizeof(rtdVal));
+        retval = (int)sizeof(rtdVal);
         break;
     }
-    case eShieldRTD2temp:
+    case eShieldRTD2cels:
     {
-        float TempRead = returnTemperature(CHIP_SELECT, 20);
-        memcpy(buffer, (uint8_t *)&TempRead, sizeof(TempRead));
-        retval = (int)sizeof(TempRead);
+        float rtdVal = magnetRTDs.readResist(localCommand);
+        memcpy(buffer, (uint8_t *)&rtdVal, sizeof(rtdVal));
+        retval = (int)sizeof(rtdVal);
         break;
     }
     /* Flow readings */
@@ -659,16 +726,17 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
         memcpy(buffer, (uint8_t *)helium, sizeof(sHeliumLevels));
         retval = sizeof(sHeliumLevels);
         break;
-    case eRTDall:
-        //hdr_out->src=eMagnetHsk;
-        magnetrtds->Top_stack = returnTemperature(CHIP_SELECT, 3);
-        magnetrtds->Btm_stack = returnTemperature(CHIP_SELECT, 9);
-        magnetrtds->Top_nonstack = returnTemperature(CHIP_SELECT, 6);
-        magnetrtds->Btm_nonstack = returnTemperature(CHIP_SELECT, 12);
-        magnetrtds->Shield1 = returnTemperature(CHIP_SELECT, 16);
-        magnetrtds->Shield2 = returnTemperature(CHIP_SELECT, 20);
-        memcpy(buffer, (uint8_t *)magnetrtds, sizeof(sMagnetRTD));
-        retval = sizeof(sMagnetRTD);
+    case eRTDallOhms:
+        sAllMagnetRTDs = magnetRTDs.readAll(localCommand);
+        // printRTDresists(sAllMagnetRTDs,serialOut); // DEBUG
+        memcpy(buffer, (uint8_t *)&sAllMagnetRTDs, sizeof(sAllMagnetRTDs));
+        retval = sizeof(sAllMagnetRTDs);
+        break;
+    case eRTDallCels:
+        sAllMagnetRTDs = magnetRTDs.readAll(localCommand);
+        // printRTDtemps(sAllMagnetRTDs,serialOut); // DEBUG
+        memcpy(buffer, (uint8_t *)&sAllMagnetRTDs, sizeof(sAllMagnetRTDs));
+        retval = sizeof(sAllMagnetRTDs);
         break;
     case eWhisperBoth:
     {
