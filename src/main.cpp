@@ -15,10 +15,13 @@
 /*******************************************************************************
  * Function Declarations
  *******************************************************************************/
-/* switches LED state*/
-void switch_LED(uint8_t LED);
+
+void blinkLED(uint8_t LED, uint period);
 void serialPrint(HardwareSerial &readPort, HardwareSerial &printPort);
 void printFlow(sMagnetFlow &flow, HardwareSerial &printPort);
+void printRTDtemps(sMagnetRTD &rtds, HardwareSerial &printPort);
+void printRTDresists(sMagnetRTD &rtds, HardwareSerial &printPort);
+void periodicPacket(housekeeping_hdr_t *hsk_header,uint period);
 
 /*******************************************************************************
  * Global Variables 
@@ -91,7 +94,6 @@ uint32_t ADCLHeFar[1];
 uint32_t ADCLHeNear[1];
 sHeliumLevels *helium;
 uint16_t helium_a[2] = {0};
-sMagnetRTD *magnetrtds;
 uint32_t magnetrtds_a[6] = {0};
 sMagnetFlows *magnetflows;
 uint64_t magnetflows_a[64] = {0};
@@ -101,19 +103,20 @@ uint64_t magnetpressure_a[2] = {0};
 const int thermalPin = 38;
 
 /* SENSOR STATES AND VARS */
-#define SENSOR_UPDATE_PERIOD 1000 // how often to check/write sensors
 uint32_t TempRead = 0;
 // for Launchpad LED example of timer used for reading sensors without holding uC attention
-#define LED_UPDATE_PERIOD 1350
-uint LEDUpdateTime = 0; // keeping LED to visualize no hanging
 bool is_high = true;
-#define PACKET_UPDATE_PERIOD 10050
-uint PacketUpdateTime = 0;    // unprompted packet timer
+
+// Declarations for periodic packet
 uint8_t packet_fake[5] = {0}; // array for using existing functions to implement command and send packet.
+housekeeping_hdr_t *packet_fake_hdr = (housekeeping_hdr_t *)packet_fake; // fakehdr is best way to send a packet
 
 /* Magnet housekeeping global vars */
 
-AnalogPressure gp50(160, A0, 12); // gp50 analog pressure transducer
+// gp50 analog pressure transducer
+AnalogPressure gp50(160, A0, 12);
+
+// flow meters
 uint16_t timeout = 100;
 MagnetWhisper stackFlow(Serial5, timeout);
 MagnetWhisper shieldFlow(Serial1, timeout);
@@ -121,8 +124,19 @@ sMagnetFlow sStackFlow;
 sMagnetFlow sShieldFlow;
 sMagnetFlows sBothFlow;
 
-// Debugging stuff
-int byteme = 0;
+// internal RTDs
+SPIClass RTDSPI(0);
+uint8_t RTDSPI_SCK = 11;
+uint8_t RTDSPI_CS  = 12;
+uint8_t RTDSPI_MOSI = 8;
+uint8_t RTDSPI_MISO = 13;
+
+MagnetRTD magnetRTDs(&RTDSPI, RTDSPI_SCK, RTDSPI_CS);
+sMagnetRTD sAllMagnetRTDs;
+
+// Set output serial port
+HardwareSerial &serialOut = Serial; // computer (DEBUG)
+// HardwareSerial &serialOut = Serial3; // MainHSK
 
 /*******************************************************************************
 * Main program
@@ -130,68 +144,79 @@ int byteme = 0;
 void setup()
 {
     // initialize packet communication
-    // setupPackets(Serial); // computer (DEBUG)
-    setupPackets(Serial3); // MainHSK
+    setupPackets(serialOut); 
 
-    // initialize magnet housekeeping
+    // initialize flow meters
     stackFlow.setup();
     shieldFlow.setup();
+    
+    // initialize magnet RTDs
+    magnetRTDs.setup();
+    
 
     // setup an LED for blinnkery
     pinMode(GREEN_LED, OUTPUT);
-    digitalWrite(GREEN_LED, HIGH);
+    digitalWrite(GREEN_LED, LOW);
+    pinMode(BLUE_LED, OUTPUT);
+    digitalWrite(BLUE_LED, LOW);
 
     analogReadResolution(gp50.getADCbits());
-    //  Serial3.print("Analog read resolution = ");
-    //  Serial3.println(gp50.getADCbits());
-    Serial3.println();
-    Serial3.println("*****RESTART*****");
+    
+    // serialOut.println("\n***RESTART***"); // DEBUG
 }
 
-char request[] = "A\r";
 void loop()
 {
+    // Blink an LED so we know the board is running
+    blinkLED(BLUE_LED,1000);
 
-    // Blink the LED so we know the board is running
-    if (millis() % LED_UPDATE_PERIOD < LEDUpdateTime)
-    {
-        switch_LED(GREEN_LED);
-        TempRead = analogRead(TEMPSENSOR);
-    }
-    LEDUpdateTime = millis() % LED_UPDATE_PERIOD;
+    packet_fake_hdr->dst = myID;
+    packet_fake_hdr->src = eSFC;
+    packet_fake_hdr->len = 0;         // this should always be 0, especially because the array is just enough to hold the header.
+    // packet_fake_hdr->cmd = eTest;
+    packet_fake_hdr->cmd = eRTDallOhms; // which command you want on the timer goes here.
 
-    // send packet unprompted every PACKET_PERIOD
-    if (millis() % PACKET_UPDATE_PERIOD < PacketUpdateTime)
-    {
-        // construct packet here, rather than receiving one from another device
-        housekeeping_hdr_t *packet_fake_hdr = (housekeeping_hdr_t *)packet_fake; // fakehdr is best way to send a packet
-        packet_fake_hdr->dst = myID;
-        packet_fake_hdr->src = eSFC;
-        packet_fake_hdr->len = 0;         // this should always be 0, especially because the array is just enough to hold the header.
-        packet_fake_hdr->cmd = eWhisperBoth; // which command you want on the timer goes here.
-        /* Normally we would call checkHdr, but our "fake" header does not need to be checked.
-    'handleLocalCommand constructs and sends our periodic packet.*/
-        handleLocalCommand(packet_fake_hdr, (uint8_t *)packet_fake_hdr + hdr_size, (uint8_t *)outgoingPacket);
-    }
-    PacketUpdateTime = millis() % PACKET_UPDATE_PERIOD;
-
+    periodicPacket(packet_fake_hdr,3000);
+    
     /* PacketSerial.update() reads and processes incoming packets.
       Returns 0 if it successfully processed the packet.
       Returns nonzero error code if it does not. */
-    if (downStream1.update() != 0)
-    {
-        // Sends out an error packet if incoming packet was not able to be successfully processed.
-        badPacketReceived(&downStream1);
-    }
+    // if (downStream1.update() != 0)
+    // {
+    //     // Sends out an error packet if incoming packet was not able to be successfully processed.
+    //     badPacketReceived(&downStream1);
+    // }
 }
 
 /*******************************************************************************
  * Testing functions
  *******************************************************************************/
+
+// blinks an LED with given period
+void blinkLED(uint8_t LED, uint period)
+{
+    static uint BlinkUpdateTime = 0;
+    static bool state = true;
+
+    if (millis() % period < BlinkUpdateTime)
+    {
+        if (state)
+        {
+            state = !state;
+            digitalWrite(LED, LOW);
+        }
+        else
+        {
+            state = !state;
+            digitalWrite(LED, HIGH);
+        }
+    }
+    BlinkUpdateTime = millis() % period;
+}
 // Prints out flow meter readout in printPort
 void printFlow(sMagnetFlow &flow, HardwareSerial &printPort)
 {
-    String pressure("Pressure = ");
+    String pressure("\nPressure = ");
     pressure += String(flow.pressure);
     pressure += String(" psia");
     printPort.println(pressure);
@@ -210,6 +235,78 @@ void printFlow(sMagnetFlow &flow, HardwareSerial &printPort)
     mass += String(flow.mass);
     mass += String(" slpm");
     printPort.println(mass);
+}
+
+// Prints out magnet RTD temperatures in printPort
+void printRTDtemps(sMagnetRTD &rtds, HardwareSerial &printPort)
+{
+    String units(" deg C");
+
+    String ts("\nTop Stack = ");
+    ts += String(rtds.Top_stack);
+    ts += units;
+    printPort.println(ts);
+    
+    String tns("Top Non Stack = ");
+    tns += String(rtds.Top_nonstack);
+    tns += units;
+    printPort.println(tns);
+
+    String bs("Bottom Stack = ");
+    bs += String(rtds.Btm_stack);
+    bs += units;
+    printPort.println(bs);
+
+    String bns("Bottom Non Stack = ");
+    bns += String(rtds.Btm_nonstack);
+    bns += units;
+    printPort.println(bns);
+    
+    String s1("Shield 1 = ");
+    s1 += String(rtds.Shield1);
+    s1 += units;
+    printPort.println(s1);
+    
+    String s2("Shield 2 = ");
+    s2 += String(rtds.Shield1);
+    s2 += units;
+    printPort.println(s2);
+}
+
+// Prints out magnet RTD temperatures in printPort
+void printRTDresists(sMagnetRTD &rtds, HardwareSerial &printPort)
+{
+    String units(" Ohms");
+
+    String ts("\nTop Stack = ");
+    ts += String(rtds.Top_stack);
+    ts += units;
+    printPort.println(ts);
+    
+    String tns("Top Non Stack = ");
+    tns += String(rtds.Top_nonstack);
+    tns += units;
+    printPort.println(tns);
+
+    String bs("Bottom Stack = ");
+    bs += String(rtds.Btm_stack);
+    bs += units;
+    printPort.println(bs);
+
+    String bns("Bottom Non Stack = ");
+    bns += String(rtds.Btm_nonstack);
+    bns += units;
+    printPort.println(bns);
+    
+    String s1("Shield 1 = ");
+    s1 += String(rtds.Shield1);
+    s1 += units;
+    printPort.println(s1);
+    
+    String s2("Shield 2 = ");
+    s2 += String(rtds.Shield1);
+    s2 += units;
+    printPort.println(s2);
 }
 
 // Prints out anything from readPort into printPort
@@ -236,27 +333,18 @@ void setupPackets(HardwareSerial &downStreamPort)
     hdr_out = (housekeeping_hdr_t *)outgoingPacket;
     hdr_err = (housekeeping_err_t *)(outgoingPacket + hdr_size);
     currentPacketCount = 0;
-    PacketUpdateTime = millis() + PACKET_UPDATE_PERIOD;
 }
 
-void periodicPacket()
+void periodicPacket(housekeeping_hdr_t *hsk_header,uint period)
 {
+    static uint PacketUpdateTime = 0;
 
-    // send packet unprompted every PACKET_PERIOD
-    if (millis() % PACKET_UPDATE_PERIOD < PacketUpdateTime)
+    // send packet unprompted every period
+    if (millis() % period < PacketUpdateTime)
     {
-        // construct packet here, rather than receiving one from another device
-        housekeeping_hdr_t *packet_fake_hdr = (housekeeping_hdr_t *)packet_fake; // fakehdr is best way to send a packet
-        packet_fake_hdr->dst = myID;
-        packet_fake_hdr->src = eSFC;
-        packet_fake_hdr->len = 0;         // this should always be 0, especially because the array is just enough to hold the header.
-        packet_fake_hdr->cmd = ePressure; // which command you want on the timer goes here.
-        /* Normally we would call checkHdr, but our "fake" header does not need to be checked.
-    'handleLocalCommand constructs and sends our periodic packet.*/
-        handleLocalCommand(packet_fake_hdr, (uint8_t *)packet_fake_hdr + hdr_size, (uint8_t *)outgoingPacket);
-        Serial3.println(Serial3.available());
+        handleLocalCommand(hsk_header, (uint8_t *)hsk_header + hdr_size, (uint8_t *)outgoingPacket);
     }
-    PacketUpdateTime = millis() % PACKET_UPDATE_PERIOD;
+    PacketUpdateTime = millis() % period;
 }
 
 /*******************************************************************************
@@ -456,91 +544,87 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     /* Resistance measurements */
     case eTopStackRTDohms:
     {
-        float ResRead = returnResistance(CHIP_SELECT, 3);
-        memcpy(buffer, (uint8_t *)&ResRead, sizeof(ResRead));
-        retval = (int)sizeof(ResRead);
+        float rtdVal = magnetRTDs.readResist(localCommand);
+        memcpy(buffer, (uint8_t *)&rtdVal, sizeof(rtdVal));
+        retval = (int)sizeof(rtdVal);
         break;
     }
     case eTopNonStackRTDohms:
     {
-        float ResRead = returnResistance(CHIP_SELECT, 6);
-        memcpy(buffer, (uint8_t *)&ResRead, sizeof(ResRead));
-        retval = (int)sizeof(ResRead);
+        float rtdVal = magnetRTDs.readResist(localCommand);
+        memcpy(buffer, (uint8_t *)&rtdVal, sizeof(rtdVal));
+        retval = (int)sizeof(rtdVal);
         break;
     }
     case eBottomStackRTDohms:
     {
-        float ResRead = returnResistance(CHIP_SELECT, 9);
-        memcpy(buffer, (uint8_t *)&ResRead, sizeof(ResRead));
-        retval = (int)sizeof(ResRead);
+        float rtdVal = magnetRTDs.readResist(localCommand);
+        memcpy(buffer, (uint8_t *)&rtdVal, sizeof(rtdVal));
+        retval = (int)sizeof(rtdVal);
         break;
     }
     case eBottomNonStackRTDohms:
     {
-        float ResRead = returnResistance(CHIP_SELECT, 12);
-        memcpy(buffer, (uint8_t *)&ResRead, sizeof(ResRead));
-        retval = (int)sizeof(ResRead);
+        float rtdVal = magnetRTDs.readResist(localCommand);
+        memcpy(buffer, (uint8_t *)&rtdVal, sizeof(rtdVal));
+        retval = (int)sizeof(rtdVal);
         break;
     }
     case eShieldRTD1ohms:
     {
-        float ResRead = returnResistance(CHIP_SELECT, 16);
-        memcpy(buffer, (uint8_t *)&ResRead, sizeof(ResRead));
-        retval = (int)sizeof(ResRead);
+        float rtdVal = magnetRTDs.readResist(localCommand);
+        memcpy(buffer, (uint8_t *)&rtdVal, sizeof(rtdVal));
+        retval = (int)sizeof(rtdVal);
         break;
     }
     case eShieldRTD2ohms:
     {
-        float ResRead = returnResistance(CHIP_SELECT, 20);
-        memcpy(buffer, (uint8_t *)&ResRead, sizeof(ResRead));
-        retval = (int)sizeof(ResRead);
+        float rtdVal = magnetRTDs.readResist(localCommand);
+        memcpy(buffer, (uint8_t *)&rtdVal, sizeof(rtdVal));
+        retval = (int)sizeof(rtdVal);
         break;
     }
     /* Temperature measurements */
-    case eTopStackRTDtemp:
+    case eTopStackRTDcels:
     {
-        // topstack
-        float TempRead = returnTemperature(CHIP_SELECT, 3);
-        memcpy(buffer, (uint8_t *)&TempRead, sizeof(TempRead));
-        retval = sizeof(TempRead);
+        float rtdVal = magnetRTDs.readResist(localCommand);
+        memcpy(buffer, (uint8_t *)&rtdVal, sizeof(rtdVal));
+        retval = (int)sizeof(rtdVal);
         break;
     }
-    case eTopNonStackRTDtemp:
+    case eTopNonStackRTDcels:
     {
-        // topnonstack
-        float TempRead = returnTemperature(CHIP_SELECT, 6);
-        memcpy(buffer, (uint8_t *)&TempRead, sizeof(TempRead));
-        retval = sizeof(TempRead);
+        float rtdVal = magnetRTDs.readResist(localCommand);
+        memcpy(buffer, (uint8_t *)&rtdVal, sizeof(rtdVal));
+        retval = (int)sizeof(rtdVal);
         break;
     }
-    case eBottomStackRTDtemp:
+    case eBottomStackRTDcels:
     {
-        // bottom stack
-        float TempRead = returnTemperature(CHIP_SELECT, 9);
-        memcpy(buffer, (uint8_t *)&TempRead, sizeof(TempRead));
-        retval = (int)sizeof(TempRead);
+        float rtdVal = magnetRTDs.readResist(localCommand);
+        memcpy(buffer, (uint8_t *)&rtdVal, sizeof(rtdVal));
+        retval = (int)sizeof(rtdVal);
         break;
     }
-    case eBottomNonStackRTDtemp:
+    case eBottomNonStackRTDcels:
     {
-        // bottom nonstack
-        float TempRead = returnTemperature(CHIP_SELECT, 12);
-        memcpy(buffer, (uint8_t *)&TempRead, sizeof(TempRead));
-        retval = (int)sizeof(TempRead);
+        float rtdVal = magnetRTDs.readResist(localCommand);
+        memcpy(buffer, (uint8_t *)&rtdVal, sizeof(rtdVal));
+        retval = (int)sizeof(rtdVal);
         break;
     }
-    case eShieldRTD1temp:
+    case eShieldRTD1cels:
     {
-        float TempRead = returnTemperature(CHIP_SELECT, 16);
-        memcpy(buffer, (uint8_t *)&TempRead, sizeof(TempRead));
-        retval = (int)sizeof(TempRead);
+        float rtdVal = magnetRTDs.readResist(localCommand);
+        memcpy(buffer, (uint8_t *)&rtdVal, sizeof(rtdVal));
+        retval = (int)sizeof(rtdVal);
         break;
     }
-    case eShieldRTD2temp:
+    case eShieldRTD2cels:
     {
-        float TempRead = returnTemperature(CHIP_SELECT, 20);
-        memcpy(buffer, (uint8_t *)&TempRead, sizeof(TempRead));
-        retval = (int)sizeof(TempRead);
+        float rtdVal = magnetRTDs.readResist(localCommand);
+        memcpy(buffer, (uint8_t *)&rtdVal, sizeof(rtdVal));
+        retval = (int)sizeof(rtdVal);
         break;
     }
     /* Flow readings */
@@ -642,16 +726,17 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
         memcpy(buffer, (uint8_t *)helium, sizeof(sHeliumLevels));
         retval = sizeof(sHeliumLevels);
         break;
-    case eRTDall:
-        //hdr_out->src=eMagnetHsk;
-        magnetrtds->Top_stack = returnTemperature(CHIP_SELECT, 3);
-        magnetrtds->Btm_stack = returnTemperature(CHIP_SELECT, 9);
-        magnetrtds->Top_nonstack = returnTemperature(CHIP_SELECT, 6);
-        magnetrtds->Btm_nonstack = returnTemperature(CHIP_SELECT, 12);
-        magnetrtds->Shield1 = returnTemperature(CHIP_SELECT, 16);
-        magnetrtds->Shield2 = returnTemperature(CHIP_SELECT, 20);
-        memcpy(buffer, (uint8_t *)magnetrtds, sizeof(sMagnetRTD));
-        retval = sizeof(sMagnetRTD);
+    case eRTDallOhms:
+        sAllMagnetRTDs = magnetRTDs.readAll(localCommand);
+        // printRTDresists(sAllMagnetRTDs,serialOut); // DEBUG
+        memcpy(buffer, (uint8_t *)&sAllMagnetRTDs, sizeof(sAllMagnetRTDs));
+        retval = sizeof(sAllMagnetRTDs);
+        break;
+    case eRTDallCels:
+        sAllMagnetRTDs = magnetRTDs.readAll(localCommand);
+        // printRTDtemps(sAllMagnetRTDs,serialOut); // DEBUG
+        memcpy(buffer, (uint8_t *)&sAllMagnetRTDs, sizeof(sAllMagnetRTDs));
+        retval = sizeof(sAllMagnetRTDs);
         break;
     case eWhisperBoth:
     {
@@ -685,6 +770,13 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     case eALL:
     {
         // should iterate through all commands or make a new struct?
+        break;
+    }
+    case eTest:
+    {
+        char test[] = "\nI'm a testy little packet!\n";
+        memcpy(buffer, (uint8_t *)&test, sizeof(test));
+        retval = sizeof(test);
         break;
     }
     case eReset:
@@ -780,18 +872,5 @@ void handleTestMode(housekeeping_hdr_t *hdr, uint8_t *data, uint8_t *responsePac
         // send to SFC
         downStream1.send(responsePacketBuffer, respHdr->len + sizeof(housekeeping_hdr_t) + 1);
         currentPacketCount++;
-    }
-}
-void switch_LED(uint8_t LED)
-{
-    if (is_high)
-    {
-        is_high = false;
-        digitalWrite(LED, LOW);
-    }
-    else
-    {
-        is_high = true;
-        digitalWrite(LED, HIGH);
     }
 }

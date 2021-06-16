@@ -10,8 +10,8 @@ void configure_channels() {
   // ----- Channel 2: Assign Sense Resistor -----
   channel_assignment_data =
       SENSOR_TYPE__SENSE_RESISTOR |
-      (uint32_t) 0x106800 
-          << SENSE_RESISTOR_VALUE_LSB; // sense resistor - value: 1050.
+      (uint32_t) 0x1F4000 
+          << SENSE_RESISTOR_VALUE_LSB; // sense resistor - value: 2000.
   assign_channel(CHIP_SELECT, 2, channel_assignment_data);
   // ----- Channel 3: Assign Thermistor Custom Table -----
   channel_assignment_data =
@@ -27,8 +27,8 @@ void configure_channels() {
   // ----- Channel 5: Assign Sense Resistor -----
   channel_assignment_data =
       SENSOR_TYPE__SENSE_RESISTOR |
-      (uint32_t) 0x106800 
-          << SENSE_RESISTOR_VALUE_LSB; // sense resistor - value: 1050.
+      (uint32_t) 0x1F4000 
+          << SENSE_RESISTOR_VALUE_LSB; // sense resistor - value: 2000.
   assign_channel(CHIP_SELECT, 5, channel_assignment_data);
   // ----- Channel 6: Assign Thermistor Custom Table -----
   channel_assignment_data =
@@ -44,8 +44,8 @@ void configure_channels() {
   // ----- Channel 8: Assign Sense Resistor -----
   channel_assignment_data =
       SENSOR_TYPE__SENSE_RESISTOR |
-      (uint32_t) 0x106800 
-          << SENSE_RESISTOR_VALUE_LSB; // sense resistor - value: 1050.
+      (uint32_t) 0x1F4000 
+          << SENSE_RESISTOR_VALUE_LSB; // sense resistor - value: 2000.
   assign_channel(CHIP_SELECT, 8, channel_assignment_data);
   // ----- Channel 9: Assign Thermistor Custom Table -----
   channel_assignment_data =
@@ -61,8 +61,8 @@ void configure_channels() {
   // ----- Channel 11: Assign Sense Resistor -----
   channel_assignment_data =
       SENSOR_TYPE__SENSE_RESISTOR |
-      (uint32_t) 0x106800 
-          << SENSE_RESISTOR_VALUE_LSB; // sense resistor - value: 1050.
+      (uint32_t) 0x1F4000 
+          << SENSE_RESISTOR_VALUE_LSB; // sense resistor - value: 2000.
   assign_channel(CHIP_SELECT, 11, channel_assignment_data);
   // ----- Channel 12: Assign Thermistor Custom Table -----
   channel_assignment_data =
@@ -78,8 +78,8 @@ void configure_channels() {
   // ----- Channel 14: Assign Sense Resistor -----
   channel_assignment_data =
       SENSOR_TYPE__SENSE_RESISTOR |
-      (uint32_t) 0x106800 
-          << SENSE_RESISTOR_VALUE_LSB; // sense resistor - value: 1050.
+      (uint32_t) 0x1F4000 
+          << SENSE_RESISTOR_VALUE_LSB; // sense resistor - value: 2000.
   assign_channel(CHIP_SELECT, 14, channel_assignment_data);
   // ----- Channel 16: Assign Thermistor Custom Table -----
   channel_assignment_data =
@@ -94,8 +94,8 @@ void configure_channels() {
   // ----- Channel 18: Assign Sense Resistor -----
   channel_assignment_data =
       SENSOR_TYPE__SENSE_RESISTOR |
-      (uint32_t) 0x106800 
-          << SENSE_RESISTOR_VALUE_LSB; // sense resistor - value: 1050.
+      (uint32_t) 0x1F4000 
+          << SENSE_RESISTOR_VALUE_LSB; // sense resistor - value: 2000.
   assign_channel(CHIP_SELECT, 18, channel_assignment_data);
   // ----- Channel 20: Assign Thermistor Custom Table -----
   channel_assignment_data =
