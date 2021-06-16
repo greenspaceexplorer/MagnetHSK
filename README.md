@@ -54,7 +54,35 @@ The magnet housekeeping command struct is defined in [lib/MagnetHSK_protocol/Mag
 ### Magnet Resistance Temperature Detectors
 
 The RTDs inside the magnet are supposed to have a resistance of 100 Ohms at 273 K, and 1.55 Ohms at 4.2 K. However, their accuracy is secondary to their indication of status changes inside the magnet (indeed, they have not been calibrated in >25 years!). They should give an indication of 20-21 Ohms at 77 K (for LN2), and 2-3 Ohms at 4 K (for LHe). 
-They are simple 2-wire probes which are read out using the LTC2983 multi-sensor high accuracy digital temperature measurement system.
+They are simple 2-wire probes which are read out using the LTC2983 multi-sensor high accuracy digital temperature measurement system. The chip performs on-board temperature conversions if desired (beware, lookup table is not entirely accurate!).
+
+**HSK Structs**
+- Individual temperatures/resistances are sent as s `float`
+
+```c++
+/* Magnet RTDs */
+
+// subhsk_id=0x02, commands associated with this struct: eRTDallCels, eRTDallOhms
+
+struct sMagnetRTD
+
+{
+float Top_stack; // top stack RTD temperature
+float Btm_stack; // btm stack RTD temperature
+float Top_nonstack; // top non-stack RTD temperature
+float Btm_nonstack; // btm non-stack RTD temperature
+float Shield1; // shield1 RTD temperature
+float Shield2; // shield2 RTD temperature
+} __attribute__((packed));
+
+```
+
+**Error Codes**
+
+| Code |      Error      | Notes |
+|:----:|:---------------:| ----- |
+|  -1  | invalid command |       |
+
 
 **Documentation**
 - [LTC2983 Temperature Measuring Chip](docs/temp-measuring_2983fc.pdf)
@@ -87,7 +115,7 @@ struct sMagnetFlows
 } __attribute__((packed));
 ```
 
-- Error codes are stored as non-physical values in the struct if an invalid reading occurs
+**Error Codes**
 
 | Code |      Error      | Notes                                                         |
 |:----:|:---------------:| ------------------------------------------------------------- |
