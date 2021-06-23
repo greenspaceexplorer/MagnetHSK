@@ -1,32 +1,3 @@
-    //***** // flow meters
-    //***** eWhisperStack = 0x0E,
-    //***** eWhisperShield = 0x0F,
-    //***** eWhisperBoth = 0x1D,
-    //***** // external temperature probes
-    //***** eTempProbe1 = 0x10,
-    //***** eTempProbe2 = 0x11,
-    //***** eTempProbe3 = 0x12,
-    //***** eTempProbe4 = 0x13,
-    //***** eTempProbe5 = 0x14,
-    //***** eTempProbe6 = 0x15,
-    //***** eTempProbe7 = 0x16,
-    //***** eTempProbe8 = 0x17,
-    //***** eTempProbe9 = 0x18,
-    //***** eTempProbe10 = 0x19,
-    //***** eTempProbeAll = 0x20,
-    //***** // pressure sensor(s)
-    //***** ePressure = 0x1E, // 4-20 mA GP:50 gauge
-    //***** ePressureAlt = 0x1A, // heise dxd gauge
-    //***** // LHe level probes
-    //***** eHeliumLevels = 0x1B,
-    //***** // magnetic field sensor
-    //***** eMagField = 0x1F,
-    //***** // HSK board temperature
-    //***** eISR = 0xA0,
-    //***** // All available readings
-    //***** eALL = 0xA2,
-    //***** // Test commands
-    //***** eTest = 0x91
 /*
  * Main execution script for magnet housekeeping 
  * 
@@ -217,7 +188,7 @@ void loop()
     packet_fake_hdr->src = eSFC;
     packet_fake_hdr->len = 0;         // this should always be 0, especially because the array is just enough to hold the header.
     // packet_fake_hdr->cmd = eTest;
-    packet_fake_hdr->cmd = eRTDallOhms; // which command you want on the timer goes here.
+    packet_fake_hdr->cmd = eALL; // which command you want on the timer goes here.
 
     periodicPacket(packet_fake_hdr,3000);
     
