@@ -6,6 +6,7 @@
 #include <PacketSerial.h>
 #include <driverlib/sysctl.h>
 
+#include <MagnetHSK_protocol.h>
 //////////////////////////////////////
 /*
  * CONSTANTS:
@@ -20,8 +21,6 @@
 #define DOWNBAUD 115200       // Baudrate to the SFC
 #define UPBAUD 9600           // Baudrate to upsteam devices
 #define TEST_MODE_PERIOD 100  // period in milliseconds between testmode packets being sent
-#define FIRST_LOCAL_COMMAND 2 // value of hdr->cmd that is the first command local to the board
-#define NUM_LOCAL_CONTROLS 32 // how many commands total are local to the board
 
 /*******************************************************************************
  * Packet sending/receiving routines

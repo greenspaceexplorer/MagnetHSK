@@ -8,11 +8,12 @@
 // For magnet housekeeping devices
 #include <MagnetWhisper.h>
 #include <MagnetRTD.h>
+#include <LHeLevel.h>
 #include <AnalogPressure.h>
 #include <configConstants.h>
 #include <configFunctions.h>
 #include <supportFunctions.h>
-#include <TempSensors.h>
+#include <TemperatureProbe.h>
 
 #include "driverlib/uart.h"
 #include "inc/hw_memmap.h"

@@ -27,44 +27,44 @@ void MagnetRTD::setup(){
 
 //------------------------------------------------------------------------------
 
-float MagnetRTD::readTemp(uint8_t cmd)
+sMagnetRTD MagnetRTD::readTemp(uint8_t cmd)
 {   
-    float out;
+    sMagnetRTD out;
     switch (cmd)
     {
     case eTopStackRTDcels:
     {
-        out = this->returnTemperature(cs,TopStack);
+        out.value = this->returnTemperature(cs,TopStack);
         break;
     }
     case eTopNonStackRTDcels:
     {
-        out = this->returnTemperature(cs,TopNonStack);
+        out.value = this->returnTemperature(cs,TopNonStack);
         break;
     }
     case eBottomStackRTDcels:
     {
-        out = this->returnTemperature(cs,BottomStack);
+        out.value = this->returnTemperature(cs,BottomStack);
         break;
     }
     case eBottomNonStackRTDcels:
     {
-        out = this->returnTemperature(cs,BottomNonStack);
+        out.value = this->returnTemperature(cs,BottomNonStack);
         break;
     }
     case eShieldRTD1cels:
     {
-        out = this->returnTemperature(cs,Shield1);
+        out.value = this->returnTemperature(cs,Shield1);
         break;
     }
     case eShieldRTD2cels:
     {
-        out = this->returnTemperature(cs,Shield2);
+        out.value = this->returnTemperature(cs,Shield2);
         break;
     }
     default:
     {
-        out = -1.0; // invalid command
+        out.value = -1.0; // invalid command
         break;
     }
     }
@@ -73,44 +73,44 @@ float MagnetRTD::readTemp(uint8_t cmd)
 
 //------------------------------------------------------------------------------
 
-float MagnetRTD::readResist(uint8_t cmd)
+sMagnetRTD MagnetRTD::readResist(uint8_t cmd)
 {   
-    float out;
+    sMagnetRTD out;
     switch (cmd)
     {
     case eTopStackRTDohms:
     {
-        out = this->returnResistance(cs,TopStack);
+        out.value = this->returnResistance(cs,TopStack);
         break;
     }
     case eTopNonStackRTDohms:
     {
-        out = this->returnResistance(cs,TopNonStack);
+        out.value = this->returnResistance(cs,TopNonStack);
         break;
     }
     case eBottomStackRTDohms:
     {
-        out = this->returnResistance(cs,BottomStack);
+        out.value = this->returnResistance(cs,BottomStack);
         break;
     }
     case eBottomNonStackRTDohms:
     {
-        out = this->returnResistance(cs,BottomNonStack);
+        out.value = this->returnResistance(cs,BottomNonStack);
         break;
     }
     case eShieldRTD1ohms:
     {
-        out = this->returnResistance(cs,Shield1);
+        out.value = this->returnResistance(cs,Shield1);
         break;
     }
     case eShieldRTD2ohms:
     {
-        out = this->returnResistance(cs,Shield2);
+        out.value = this->returnResistance(cs,Shield2);
         break;
     }
     default:
     {
-        out = -1.0; // invalid command
+        out.value = -1.0; // invalid command
         break;
     }
     }
@@ -119,36 +119,36 @@ float MagnetRTD::readResist(uint8_t cmd)
 
 //------------------------------------------------------------------------------
 
-sMagnetRTD MagnetRTD::readAll(uint8_t cmd)
+sMagnetRTDAll MagnetRTD::readAll(uint8_t cmd)
 {
-    sMagnetRTD out;
+    sMagnetRTDAll out;
 
     if (cmd == eRTDallCels)
     {
-        out.Top_stack    = this->readTemp(eTopStackRTDcels);
-        out.Top_nonstack = this->readTemp(eTopNonStackRTDcels);
-        out.Btm_stack    = this->readTemp(eBottomStackRTDcels);
-        out.Btm_stack    = this->readTemp(eBottomNonStackRTDcels);
-        out.Shield1      = this->readTemp(eShieldRTD1cels);
-        out.Shield2      = this->readTemp(eShieldRTD2cels);
+        out.top_stack    = this->readTemp(eTopStackRTDcels).value;
+        out.top_nonstack = this->readTemp(eTopNonStackRTDcels).value;
+        out.btm_stack    = this->readTemp(eBottomStackRTDcels).value;
+        out.btm_stack    = this->readTemp(eBottomNonStackRTDcels).value;
+        out.shield1      = this->readTemp(eShieldRTD1cels).value;
+        out.shield2      = this->readTemp(eShieldRTD2cels).value;
     }
     else if (cmd == eRTDallOhms)
     {
-        out.Top_stack    = this->readResist(eTopStackRTDohms);
-        out.Top_nonstack = this->readResist(eTopNonStackRTDohms);
-        out.Btm_stack    = this->readResist(eBottomStackRTDohms);
-        out.Btm_stack    = this->readResist(eBottomNonStackRTDohms);
-        out.Shield1      = this->readResist(eShieldRTD1ohms);
-        out.Shield2      = this->readResist(eShieldRTD2ohms);
+        out.top_stack    = this->readResist(eTopStackRTDohms).value;
+        out.top_nonstack = this->readResist(eTopNonStackRTDohms).value;
+        out.btm_stack    = this->readResist(eBottomStackRTDohms).value;
+        out.btm_stack    = this->readResist(eBottomNonStackRTDohms).value;
+        out.shield1      = this->readResist(eShieldRTD1ohms).value;
+        out.shield2      = this->readResist(eShieldRTD2ohms).value;
     }
     else
     {
-        out.Top_stack    = -1.; 
-        out.Top_nonstack = -1.; 
-        out.Btm_stack    = -1.; 
-        out.Btm_stack    = -1.; 
-        out.Shield1      = -1.; 
-        out.Shield2      = -1.; 
+        out.top_stack    = -1.; 
+        out.top_nonstack = -1.; 
+        out.btm_stack    = -1.; 
+        out.btm_stack    = -1.; 
+        out.shield1      = -1.; 
+        out.shield2      = -1.; 
     }
     return out;
 }

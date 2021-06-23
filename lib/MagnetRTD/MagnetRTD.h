@@ -62,7 +62,7 @@ class MagnetRTD{
         
         void setup();
         
-        float readTemp(uint8_t cmd);
+        sMagnetRTD readTemp(uint8_t cmd);
         // 9-15 are temperature readings
         // eTopStackRTDtemp = 0x08
         // eTopNonStackRTDtemp = 0x09
@@ -71,7 +71,7 @@ class MagnetRTD{
         // eShieldRTD1temp = 0x0C
         // eShieldRTD2temp = 0x0D
 
-        float readResist(uint8_t cmd);
+        sMagnetRTD readResist(uint8_t cmd);
         // 2-8 are resistance readings
         // eTopStackRTDohms = 0x02
         // eTopNonStackRTDohms = 0x03
@@ -80,7 +80,7 @@ class MagnetRTD{
         // eShieldRTD1ohms = 0x06
         // eShieldRTD2ohms = 0x07
         
-        sMagnetRTD readAll(uint8_t cmd);
+        sMagnetRTDAll readAll(uint8_t cmd);
         // eRTDallOhms = 0x20
         // eRTDallCels = 0x1C
 
