@@ -141,7 +141,7 @@ sMagnetRTDAll magnetRTDAll;
 sMagnetRTD magnetRTD;
 
 // OneWire temperature probes
-TemperatureProbe tempProbe_device;
+HelixOneWire oneWire(PB_3);
 sTempProbeAll tempProbeAll;
 sTempProbe tempProbe;
 
@@ -179,18 +179,42 @@ void setup()
     // serialOut.println("\n***RESTART***"); // DEBUG
 }
 
+uint timer0 = 0,timer1 = 0, offset1 = 1000, period = 2000;
+uint8_t val;
+
 void loop()
 {
     // Blink an LED so we know the board is running
     blinkLED(BLUE_LED,1000);
+    if (millis() % period < timer0)
+    {
+        oneWire.convertAll();
 
-    packet_fake_hdr->dst = myID;
-    packet_fake_hdr->src = eSFC;
-    packet_fake_hdr->len = 0;         // this should always be 0, especially because the array is just enough to hold the header.
-    // packet_fake_hdr->cmd = eTest;
-    packet_fake_hdr->cmd = eALL; // which command you want on the timer goes here.
+    }
+    timer0 = millis() % period;
+    if ((millis()-offset1) % period < timer1)
+    {
+        tempProbe = oneWire.read(1);
+        float temp = (float)tempProbe.temperature/16.0;
+        serialOut.print("Temperature = ");
+        serialOut.print(temp);
+        serialOut.println(" deg C");
 
-    periodicPacket(packet_fake_hdr,3000);
+        tempProbe = oneWire.read(2);
+        temp = (float)tempProbe.temperature/16.0;
+        serialOut.print("Temperature = ");
+        serialOut.print(temp);
+        serialOut.println(" deg C");
+    }
+    timer1 = (millis() - offset1) % period;
+
+//     packet_fake_hdr->dst = myID;
+//     packet_fake_hdr->src = eSFC;
+//     packet_fake_hdr->len = 0;         // this should always be 0, especially because the array is just enough to hold the header.
+//     // packet_fake_hdr->cmd = eTest;
+//     packet_fake_hdr->cmd = eALL; // which command you want on the timer goes here.
+// 
+//     periodicPacket(packet_fake_hdr,3000);
     
     /* PacketSerial.update() reads and processes incoming packets.
       Returns 0 if it successfully processed the packet.
@@ -674,7 +698,7 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     /* Temperature probes */
     case eTempProbe1:
     {
-        tempProbe = tempProbe_device.read(localCommand);
+        tempProbe = oneWire.read(1);
         memcpy(buffer, (uint8_t *)&tempProbe, sizeof(tempProbe));
         retval = (int)sizeof(tempProbe);
 //        float TempRead = tempSensorVal(1, thermalPin);
@@ -684,7 +708,7 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     }
     case eTempProbe2:
     {
-        tempProbe = tempProbe_device.read(localCommand);
+        tempProbe = oneWire.read(2);
         memcpy(buffer, (uint8_t *)&tempProbe, sizeof(tempProbe));
         retval = (int)sizeof(tempProbe);
 //        float TempRead = tempSensorVal(2, thermalPin);
@@ -694,7 +718,7 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     }
     case eTempProbe3:
     {
-        tempProbe = tempProbe_device.read(localCommand);
+        tempProbe = oneWire.read(3);
         memcpy(buffer, (uint8_t *)&tempProbe, sizeof(tempProbe));
         retval = (int)sizeof(tempProbe);
 //        float TempRead = tempSensorVal(3, thermalPin);
@@ -704,7 +728,7 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     }
     case eTempProbe4:
     {
-        tempProbe = tempProbe_device.read(localCommand);
+        tempProbe = oneWire.read(4);
         memcpy(buffer, (uint8_t *)&tempProbe, sizeof(tempProbe));
         retval = (int)sizeof(tempProbe);
 //        float TempRead = tempSensorVal(4, thermalPin);
@@ -714,7 +738,7 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     }
     case eTempProbe5:
     {
-        tempProbe = tempProbe_device.read(localCommand);
+        tempProbe = oneWire.read(5);
         memcpy(buffer, (uint8_t *)&tempProbe, sizeof(tempProbe));
         retval = (int)sizeof(tempProbe);
 //        float TempRead = tempSensorVal(5, thermalPin);
@@ -724,7 +748,7 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     }
     case eTempProbe6:
     {
-        tempProbe = tempProbe_device.read(localCommand);
+        tempProbe = oneWire.read(6);
         memcpy(buffer, (uint8_t *)&tempProbe, sizeof(tempProbe));
         retval = (int)sizeof(tempProbe);
 //        float TempRead = tempSensorVal(6, thermalPin);
@@ -734,7 +758,7 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     }
     case eTempProbe7:
     {
-        tempProbe = tempProbe_device.read(localCommand);
+        tempProbe = oneWire.read(7);
         memcpy(buffer, (uint8_t *)&tempProbe, sizeof(tempProbe));
         retval = (int)sizeof(tempProbe);
 //        float TempRead = tempSensorVal(7, thermalPin);
@@ -744,7 +768,7 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     }
     case eTempProbe8:
     {
-        tempProbe = tempProbe_device.read(localCommand);
+        tempProbe = oneWire.read(8);
         memcpy(buffer, (uint8_t *)&tempProbe, sizeof(tempProbe));
         retval = (int)sizeof(tempProbe);
 //        float TempRead = tempSensorVal(8, thermalPin);
@@ -754,7 +778,7 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     }
     case eTempProbe9:
     {
-        tempProbe = tempProbe_device.read(localCommand);
+        tempProbe = oneWire.read(9);
         memcpy(buffer, (uint8_t *)&tempProbe, sizeof(tempProbe));
         retval = (int)sizeof(tempProbe);
 //        float TempRead = tempSensorVal(9, thermalPin);
@@ -764,7 +788,7 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     }
     case eTempProbe10:
     {
-        tempProbe = tempProbe_device.read(localCommand);
+        tempProbe = oneWire.read(10);
         memcpy(buffer, (uint8_t *)&tempProbe, sizeof(tempProbe));
         retval = (int)sizeof(tempProbe);
 //        float TempRead = tempSensorVal(10, thermalPin);
@@ -774,7 +798,7 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     }
     case eTempProbeAll:
     {
-        tempProbeAll = tempProbe_device.readAll();
+        tempProbeAll = oneWire.readAll();
         memcpy(buffer, (uint8_t *)&tempProbeAll, sizeof(tempProbeAll));
         retval = (int)sizeof(tempProbeAll);
         break;
@@ -843,7 +867,7 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
 
         magnetAll.magnetRTDs =  magnetRTD_device.readAll(eRTDallOhms);
 
-        magnetAll.tempProbeAll = tempProbe_device.readAll();
+        magnetAll.tempProbeAll = oneWire.readAll();
 
         memcpy(buffer, (uint8_t *)&magnetAll, sizeof(magnetAll));
         retval = sizeof(magnetAll);

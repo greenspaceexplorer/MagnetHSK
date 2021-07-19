@@ -18,7 +18,7 @@
  * --BAUD rates are defined here
  *
  */
-#define DOWNBAUD 115200       // Baudrate to the SFC
+#define DOWNBAUD 9600 // Baudrate to the SFC
 #define UPBAUD 9600           // Baudrate to upsteam devices
 #define TEST_MODE_PERIOD 100  // period in milliseconds between testmode packets being sent
 
