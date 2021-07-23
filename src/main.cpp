@@ -18,6 +18,7 @@
 
 void blinkLED(uint8_t LED, uint period);
 void serialPrint(HardwareSerial &readPort, HardwareSerial &printPort);
+void oneWireTempTest(sTempProbe value, HardwareSerial &printPort);
 void printFlow(sMagnetFlow &flow, HardwareSerial &printPort);
 void printRTDtemps(sMagnetRTDAll &rtds, HardwareSerial &printPort);
 void printRTDresists(sMagnetRTDAll &rtds, HardwareSerial &printPort);
@@ -177,58 +178,99 @@ void setup()
     analogReadResolution(gp50.getADCbits());
     
     // serialOut.println("\n***RESTART***"); // DEBUG
+    
+    serialOut.println("ts,tns,bs,bns,s1,s2,st_pr,st_tmp,st_vfl,st_mfl,sh_pr,sh_tmp,sh_vfl,sh_mfl");
 }
 
-uint timer0 = 0,timer1 = 0, offset1 = 1000, period = 2000;
+uint timer0 = 0,timer1 = 0, offset1 = 5000, period = 10000;
 uint8_t val;
 
 void loop()
 {
     // Blink an LED so we know the board is running
     blinkLED(BLUE_LED,1000);
-    if (millis() % period < timer0)
-    {
-        oneWire.convertAll();
+    
 
-    }
-    timer0 = millis() % period;
-    if ((millis()-offset1) % period < timer1)
-    {
-        tempProbe = oneWire.read(1);
-        float temp = (float)tempProbe.temperature/16.0;
-        serialOut.print("Temperature = ");
-        serialOut.print(temp);
-        serialOut.println(" deg C");
+   if (millis() % period < timer0)
+   {
+        magnetRTDAll = magnetRTD_device.readAll(eRTDallOhms);
+        delay(100);
+        stackFlow = stackFlow_device.read();
+        delay(100);
+        shieldFlow = shieldFlow_device.read();
+        
+        delay(100);
+        printRTDresists(magnetRTDAll,serialOut);
+        serialOut.print(", ");
+        printFlow(stackFlow,serialOut);
+        serialOut.print(", ");
+        printFlow(shieldFlow,serialOut);
+        serialOut.println();
+        
 
-        tempProbe = oneWire.read(2);
-        temp = (float)tempProbe.temperature/16.0;
-        serialOut.print("Temperature = ");
-        serialOut.print(temp);
-        serialOut.println(" deg C");
-    }
-    timer1 = (millis() - offset1) % period;
+   }
+   timer0 = millis() % period;
+
+//    if (millis() % period < timer0)
+//    {
+//        oneWire.convertAll();
+//
+//    }
+//    timer0 = millis() % period;
+//    if ((millis()-offset1) % period < timer1)
+//    {
+//        for(int i = 1; i < 6; i++){
+//            tempProbe = oneWire.read(i);
+//            serialOut.print("=== Probe #");
+//            serialOut.print(i);
+//            serialOut.println(" ===");
+//            oneWireTempTest(tempProbe,serialOut);
+//        }
+//    }
+//    timer1 = (millis() - offset1) % period;
 
 //     packet_fake_hdr->dst = myID;
 //     packet_fake_hdr->src = eSFC;
 //     packet_fake_hdr->len = 0;         // this should always be 0, especially because the array is just enough to hold the header.
 //     // packet_fake_hdr->cmd = eTest;
-//     packet_fake_hdr->cmd = eALL; // which command you want on the timer goes here.
+//     packet_fake_hdr->cmd = eWhisperBoth; // which command you want on the timer goes here.
 // 
 //     periodicPacket(packet_fake_hdr,3000);
-    
-    /* PacketSerial.update() reads and processes incoming packets.
-      Returns 0 if it successfully processed the packet.
-      Returns nonzero error code if it does not. */
-    // if (downStream1.update() != 0)
-    // {
-    //     // Sends out an error packet if incoming packet was not able to be successfully processed.
-    //     badPacketReceived(&downStream1);
-    // }
+//     
+//     /* PacketSerial.update() reads and processes incoming packets.
+//       Returns 0 if it successfully processed the packet.
+//       Returns nonzero error code if it does not. */
+//     if (downStream1.update() != 0)
+//     {
+//         // Sends out an error packet if incoming packet was not able to be successfully processed.
+//         badPacketReceived(&downStream1);
+//     }
 }
 
 /*******************************************************************************
  * Testing functions
  *******************************************************************************/
+void oneWireTempTest(sTempProbe value, HardwareSerial &printPort){
+    if(value.temperature == -9996){
+        printPort.println("1wire bus is busy...");
+    }
+    else if(value.temperature == -9999){
+        printPort.println("Probe not found...");
+    }
+    else if(value.temperature == -9998){
+        printPort.println("CRC error...");
+    }
+    else if(value.temperature == -9997){
+        printPort.println("Device type error...");
+    }
+    else{
+        float temp = (float)tempProbe.temperature/16.0;
+        printPort.print("Temperature = ");
+        printPort.print(temp);
+        printPort.println(" deg C");
+    }
+
+}
 
 // blinks an LED with given period
 void blinkLED(uint8_t LED, uint period)
@@ -254,25 +296,36 @@ void blinkLED(uint8_t LED, uint period)
 // Prints out flow meter readout in printPort
 void printFlow(sMagnetFlow &flow, HardwareSerial &printPort)
 {
-    String pressure("\nPressure = ");
-    pressure += String(flow.pressure);
-    pressure += String(" psia");
-    printPort.println(pressure);
+//     String pressure("\nPressure = ");
+//     pressure += String(flow.pressure);
+//     pressure += String(" psia");
+//     printPort.println(pressure);
+// 
+//     String temp("Temperature = ");
+//     temp += String(flow.temperature);
+//     temp += String(" deg C");
+//     printPort.println(temp);
+// 
+//     String vol("Volumetric Flow = ");
+//     vol += String(flow.volume);
+//     vol += String(" slpm");
+//     printPort.println(vol);
+// 
+//     String mass("Mass Flow = ");
+//     mass += String(flow.mass);
+//     mass += String(" slpm");
+//     printPort.println(mass);
 
-    String temp("Temperature = ");
-    temp += String(flow.temperature);
-    temp += String(" deg C");
-    printPort.println(temp);
-
-    String vol("Volumetric Flow = ");
-    vol += String(flow.volume);
-    vol += String(" slpm");
-    printPort.println(vol);
-
-    String mass("Mass Flow = ");
-    mass += String(flow.mass);
-    mass += String(" slpm");
-    printPort.println(mass);
+    String line("");
+    String comma(", ");
+    line += String(flow.pressure);
+    line += comma;
+    line += String(flow.temperature);
+    line += comma;
+    line += String(flow.volume);
+    line += comma;
+    line += String(flow.mass);
+    printPort.print(line);
 }
 
 // Prints out magnet RTD temperatures in printPort
@@ -314,37 +367,54 @@ void printRTDtemps(sMagnetRTDAll &rtds, HardwareSerial &printPort)
 // Prints out magnet RTD temperatures in printPort
 void printRTDresists(sMagnetRTDAll &rtds, HardwareSerial &printPort)
 {
-    String units(" Ohms");
+    // String units(" Ohms");
+    String comma(", ");
+    String line("");
 
-    String ts("\nTop Stack = ");
-    ts += String(rtds.top_stack);
-    ts += units;
-    printPort.println(ts);
+    // String ts("\nTop Stack = ");
+    // ts += String(rtds.top_stack);
+    // ts += units;
+    // printPort.println(ts);
     
-    String tns("Top Non Stack = ");
-    tns += String(rtds.top_nonstack);
-    tns += units;
-    printPort.println(tns);
+    // String tns("Top Non Stack = ");
+    // tns += String(rtds.top_nonstack);
+    // tns += units;
+    // printPort.println(tns);
 
-    String bs("Bottom Stack = ");
-    bs += String(rtds.btm_stack);
-    bs += units;
-    printPort.println(bs);
+    // String bs("Bottom Stack = ");
+    // bs += String(rtds.btm_stack);
+    // bs += units;
+    // printPort.println(bs);
 
-    String bns("Bottom Non Stack = ");
-    bns += String(rtds.btm_nonstack);
-    bns += units;
-    printPort.println(bns);
+    // String bns("Bottom Non Stack = ");
+    // bns += String(rtds.btm_nonstack);
+    // bns += units;
+    // printPort.println(bns);
     
-    String s1("Shield 1 = ");
-    s1 += String(rtds.shield1);
-    s1 += units;
-    printPort.println(s1);
+    // String s1("Shield 1 = ");
+    // s1 += String(rtds.shield1);
+    // s1 += units;
+    // printPort.println(s1);
     
-    String s2("Shield 2 = ");
-    s2 += String(rtds.shield1);
-    s2 += units;
-    printPort.println(s2);
+    // String s2("Shield 2 = ");
+    // s2 += String(rtds.shield1);
+    // s2 += units;
+    // printPort.println(s2);
+
+    line += String(rtds.top_stack);
+    line += comma;
+    line += String(rtds.top_nonstack);
+    line += comma;
+    line += String(rtds.btm_stack);
+    line += comma;
+    line += String(rtds.btm_nonstack);
+    line += comma;
+    line += String(rtds.shield1);
+    line += comma;
+    line += String(rtds.shield2);
+
+    printPort.print(line);
+    
 }
 
 // Prints out anything from readPort into printPort

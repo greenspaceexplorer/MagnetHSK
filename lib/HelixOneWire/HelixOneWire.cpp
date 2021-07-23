@@ -33,7 +33,7 @@ sTempProbe HelixOneWire::read(uint8_t probeNum)
 
     // reset search and counter if bus is available
     this->reset_search();
-    uint8_t count = 1;
+    uint8_t count = 0;
     bool isAddress = this->search(addr);
 
     // iterate until we get the proper probe number or we run out of probes
@@ -56,6 +56,7 @@ sTempProbe HelixOneWire::read(uint8_t probeNum)
     // cyclic redundancy check
     if (HelixOneWire::crc8(addr, 7) != addr[7])
     {
+        Serial.println("Hello there");
         probe.sn = sn;
         temp += 1; // -9998 crc error
         probe.temperature = temp;
