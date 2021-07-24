@@ -46,11 +46,20 @@
 #define VOLTAGE (uint8_t)0x01
 #define TEMPERATURE (uint8_t)0x02
 
+//enum rtdChannel{
+    //TopStack       = 3,
+    //TopNonStack    = 6,
+    //BottomStack    = 9,
+    //BottomNonStack = 12,
+    //Shield1        = 16,
+    //Shield2        = 20
+//};
+
 enum rtdChannel{
-    TopStack       = 3,
-    TopNonStack    = 6,
-    BottomStack    = 9,
-    BottomNonStack = 12,
+    TopStack       = 12,
+    TopNonStack    = 9,
+    BottomStack    = 3,
+    BottomNonStack = 6,
     Shield1        = 16,
     Shield2        = 20
 };
