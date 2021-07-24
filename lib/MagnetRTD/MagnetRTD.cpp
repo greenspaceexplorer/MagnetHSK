@@ -125,30 +125,30 @@ sMagnetRTDAll MagnetRTD::readAll(uint8_t cmd)
 
     if (cmd == eRTDallCels)
     {
-        out.top_stack    = this->readTemp(eTopStackRTDcels).value;
-        out.top_nonstack = this->readTemp(eTopNonStackRTDcels).value;
-        out.btm_stack    = this->readTemp(eBottomStackRTDcels).value;
-        out.btm_stack    = this->readTemp(eBottomNonStackRTDcels).value;
-        out.shield1      = this->readTemp(eShieldRTD1cels).value;
-        out.shield2      = this->readTemp(eShieldRTD2cels).value;
+        out.top_stack       = this->readTemp(eTopStackRTDcels).value;
+        out.top_nonstack    = this->readTemp(eTopNonStackRTDcels).value;
+        out.btm_stack       = this->readTemp(eBottomStackRTDcels).value;
+        out.btm_nonstack    = this->readTemp(eBottomNonStackRTDcels).value;
+        out.shield1         = this->readTemp(eShieldRTD1cels).value;
+        out.shield2         = this->readTemp(eShieldRTD2cels).value;
     }
     else if (cmd == eRTDallOhms)
     {
-        out.top_stack    = this->readResist(eTopStackRTDohms).value;
-        out.top_nonstack = this->readResist(eTopNonStackRTDohms).value;
-        out.btm_stack    = this->readResist(eBottomStackRTDohms).value;
-        out.btm_stack    = this->readResist(eBottomNonStackRTDohms).value;
-        out.shield1      = this->readResist(eShieldRTD1ohms).value;
-        out.shield2      = this->readResist(eShieldRTD2ohms).value;
+        out.top_stack       = this->readResist(eTopStackRTDohms).value;
+        out.top_nonstack    = this->readResist(eTopNonStackRTDohms).value;
+        out.btm_stack       = this->readResist(eBottomStackRTDohms).value;
+        out.btm_nonstack    = this->readResist(eBottomNonStackRTDohms).value;
+        out.shield1         = this->readResist(eShieldRTD1ohms).value;
+        out.shield2         = this->readResist(eShieldRTD2ohms).value;
     }
     else
     {
-        out.top_stack    = -1.; 
-        out.top_nonstack = -1.; 
-        out.btm_stack    = -1.; 
-        out.btm_stack    = -1.; 
-        out.shield1      = -1.; 
-        out.shield2      = -1.; 
+        out.top_stack       = -1.; 
+        out.top_nonstack    = -1.; 
+        out.btm_stack       = -1.; 
+        out.btm_nonstack    = -1.; 
+        out.shield1         = -1.; 
+        out.shield2         = -1.; 
     }
     return out;
 }
