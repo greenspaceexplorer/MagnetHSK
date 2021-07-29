@@ -89,17 +89,6 @@ uint16_t currentPacketCount = 0;
 // static_assert(sizeof(float) == 4);
 unsigned long timelastpacket; //for TestMode
 
-/* Variables for readout of magnet sensors */
-uint32_t ADCLHeFar[1];
-uint32_t ADCLHeNear[1];
-sHeliumLevels *helium;
-uint16_t helium_a[2] = {0};
-uint32_t magnetrtds_a[6] = {0};
-sMagnetFlows *magnetflows;
-uint64_t magnetflows_a[64] = {0};
-sMagnetPressure *magnetpressure;
-uint64_t magnetpressure_a[2] = {0};
-
 const int thermalPin = 38;
 
 /* SENSOR STATES AND VARS */
@@ -114,12 +103,21 @@ housekeeping_hdr_t *packet_fake_hdr = (housekeeping_hdr_t *)packet_fake; // fake
 /* MAGNET HOUSEKEEPING GLOBAL VARS */
 
 // level probes
-LHeLevel levelsNear_device;
-LHeLevel levelsFar_device;
+uint8_t LHeI2Cbus = 1;
+uint8_t LHeNearADC = A5;
+uint8_t LHeNearIMON = A7;
+uint8_t LHeFarADC  = A4;
+uint8_t LHeFarIMON = A6;
+uint8_t LHeCLR = PB_4;
+TwoWire LHeI2C(LHeI2Cbus); 
+LHeLevel levelProbes(LHeI2C, LHeNearADC, LHeNearIMON, LHeFarADC, LHeFarIMON,LHeCLR);
+
+sHeliumLevel lnear,lfar;
 sHeliumLevels  lheLevels;
 
 // gp50 analog pressure transducer
 AnalogPressure gp50(160, A0, 12);
+sMagnetPressure magnetpressure;
 
 // flow meters
 uint16_t timeout = 100;
@@ -167,39 +165,70 @@ void setup()
     // initialize magnet RTDs
     magnetRTD_device.setup();
     
+    // initialize level probes
+    levelProbes.setup();
 
-    // setup an LED for blinnkery
+    // adc read resolution
+    analogReadResolution(gp50.getADCbits());
+
+    // setup an LED for blinkery
+    pinMode(RED_LED, INPUT);
+    digitalWrite(RED_LED,LOW);
     pinMode(GREEN_LED, OUTPUT);
     digitalWrite(GREEN_LED, LOW);
     pinMode(BLUE_LED, OUTPUT);
     digitalWrite(BLUE_LED, LOW);
 
-    analogReadResolution(gp50.getADCbits());
     
     // serialOut.println("\n***RESTART***"); // DEBUG
 }
+
+uint64_t timer = 0, period = 3000;
+bool toggle = true;
+float levelRead1, levelRead2;
+float currentRead1, currentRead2;
+
 
 void loop()
 {
     // Blink an LED so we know the board is running
     blinkLED(BLUE_LED,1000);
+    // do something periodically
+    if(millis()%period < timer)
+    {
+        if(toggle)
+        {
+            levelProbes.apply_current(eHeliumLevels, 50.0);
+            delay(10);
+            currentRead1 = levelProbes.monitor_current(eHeliumLevelNear); 
+            currentRead2 = levelProbes.monitor_current(eHeliumLevelFar); 
+            serialOut.println("==== Toggle ON ====");
+            serialOut.print("IMON1 = ");
+            serialOut.println(currentRead1,DEC);
+            serialOut.print("IMON2 = ");
+            serialOut.println(currentRead2,DEC);
+            toggle = false;
+        }
+        else
+        {
+            levelProbes.apply_current(eHeliumLevels, 51.0);
+            // digitalWrite(LHeCLR,HIGH);
+            delay(10);
+            currentRead1 = levelProbes.monitor_current(eHeliumLevelNear); 
+            currentRead2 = levelProbes.monitor_current(eHeliumLevelFar); 
+            serialOut.println("==== Toggle OFF ====");
+            serialOut.print("IMON1 = ");
+            serialOut.println(currentRead1,DEC);
+            serialOut.print("IMON2 = ");
+            serialOut.println(currentRead2,DEC);
+            digitalWrite(LHeCLR,LOW);
+            toggle = true;
+        }
 
-    packet_fake_hdr->dst = myID;
-    packet_fake_hdr->src = eSFC;
-    packet_fake_hdr->len = 0;         // this should always be 0, especially because the array is just enough to hold the header.
-    // packet_fake_hdr->cmd = eTest;
-    packet_fake_hdr->cmd = eALL; // which command you want on the timer goes here.
+    }
+    timer = millis()%period;
 
-    periodicPacket(packet_fake_hdr,3000);
-    
-    /* PacketSerial.update() reads and processes incoming packets.
-      Returns 0 if it successfully processed the packet.
-      Returns nonzero error code if it does not. */
-    // if (downStream1.update() != 0)
-    // {
-    //     // Sends out an error packet if incoming packet was not able to be successfully processed.
-    //     badPacketReceived(&downStream1);
-    // }
+
 }
 
 /*******************************************************************************
@@ -785,11 +814,8 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
         break;
     }
     case eHeliumLevels:
-        ADCLHeFar[0] = analogRead(A4);
-        ADCLHeNear[0] = analogRead(A5);
-        helium->far = (uint16_t)ADCLHeFar[0];
-        helium->near = (uint16_t)ADCLHeNear[0];
-        memcpy(buffer, (uint8_t *)helium, sizeof(sHeliumLevels));
+        lheLevels = levelProbes.read();
+        memcpy(buffer, (uint8_t *)&lheLevels, sizeof(sHeliumLevels));
         retval = sizeof(sHeliumLevels);
         break;
     case eWhisperBoth:
@@ -803,8 +829,8 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     case ePressure:
     {
         uint16_t localPressure = gp50.readADC();
-        magnetpressure->Pressure = localPressure;
-        memcpy(buffer, magnetpressure, sizeof(sMagnetPressure));
+        magnetpressure.pressure = localPressure;
+        memcpy(buffer,(uint8_t *)&magnetpressure, sizeof(sMagnetPressure));
         retval = sizeof(sMagnetPressure);
         break;
     }
@@ -833,13 +859,12 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
         boardTemp.temperature = (float)(1475 - ((2475 * TempRead) / 4096)) / 10;
         magnetAll.hskBoardTemp = boardTemp;
         
-        lheLevels.near = levelsNear_device.read();
-        lheLevels.far = levelsFar_device.read();
+        lheLevels = levelProbes.read();
         magnetAll.heliumLevels = lheLevels;
         
         uint16_t localPressure = gp50.readADC();
-        magnetpressure->Pressure = localPressure;
-        magnetAll.magnetPressure =  *magnetpressure;
+        magnetpressure.pressure = localPressure;
+        magnetAll.magnetPressure =  magnetpressure;
 
         magnetAll.magnetRTDs =  magnetRTD_device.readAll(eRTDallOhms);
 
