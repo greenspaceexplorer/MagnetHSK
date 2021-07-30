@@ -158,18 +158,19 @@ void setup()
     // initialize packet communication
     setupPackets(serialOut); 
 
+    serialOut.println("Serial comms active...");
     // initialize flow meters
     stackFlow_device.setup();
     shieldFlow_device.setup();
     
     // initialize magnet RTDs
     magnetRTD_device.setup();
-    
-    // initialize level probes
-    levelProbes.setup();
 
     // adc read resolution
     analogReadResolution(gp50.getADCbits());
+    
+    // initialize level probes
+    levelProbes.setup(20000);
 
     // setup an LED for blinkery
     pinMode(RED_LED, INPUT);
@@ -178,55 +179,64 @@ void setup()
     digitalWrite(GREEN_LED, LOW);
     pinMode(BLUE_LED, OUTPUT);
     digitalWrite(BLUE_LED, LOW);
-
     
     // serialOut.println("\n***RESTART***"); // DEBUG
 }
 
-uint64_t timer = 0, period = 3000;
-bool toggle = true;
-float levelRead1, levelRead2;
-float currentRead1, currentRead2;
+uint16_t nearIMON,farIMON,nearADC,farADC;
+float near,far;
+uint64_t timer = 0, period = 1000;
+String strout = "", comma = ", ";
 
 
 void loop()
 {
     // Blink an LED so we know the board is running
     blinkLED(BLUE_LED,1000);
+    
+    // update level probe object for timing
+    // levelProbes.update();
     // do something periodically
     if(millis()%period < timer)
     {
-        if(toggle)
-        {
-            levelProbes.apply_current(eHeliumLevels, 50.0);
-            delay(10);
-            currentRead1 = levelProbes.monitor_current(eHeliumLevelNear); 
-            currentRead2 = levelProbes.monitor_current(eHeliumLevelFar); 
-            serialOut.println("==== Toggle ON ====");
-            serialOut.print("IMON1 = ");
-            serialOut.println(currentRead1,DEC);
-            serialOut.print("IMON2 = ");
-            serialOut.println(currentRead2,DEC);
-            toggle = false;
-        }
-        else
-        {
-            levelProbes.apply_current(eHeliumLevels, 51.0);
-            // digitalWrite(LHeCLR,HIGH);
-            delay(10);
-            currentRead1 = levelProbes.monitor_current(eHeliumLevelNear); 
-            currentRead2 = levelProbes.monitor_current(eHeliumLevelFar); 
-            serialOut.println("==== Toggle OFF ====");
-            serialOut.print("IMON1 = ");
-            serialOut.println(currentRead1,DEC);
-            serialOut.print("IMON2 = ");
-            serialOut.println(currentRead2,DEC);
-            digitalWrite(LHeCLR,LOW);
-            toggle = true;
-        }
 
+        levelProbes.apply_current(eHeliumLevels,0.02);
+        delay(10);
+        
+        nearIMON = levelProbes.current_adc(eHeliumLevelNear);
+        nearADC  = levelProbes.level_adc(eHeliumLevelNear);
+        near = levelProbes.lhe_level(nearADC,nearIMON);
+        levelProbes.set_level(near,0,eHeliumLevelNear);
+        farIMON = levelProbes.current_adc(eHeliumLevelFar);
+        farADC  = levelProbes.level_adc(eHeliumLevelFar);
+        far = levelProbes.lhe_level(farADC,farIMON);
+        levelProbes.set_level(far,0,eHeliumLevelFar);
+
+        
+        lheLevels = levelProbes.read();
+        strout += "Near level = ";
+        strout += String(lheLevels.near.level);
+        strout += " cm. Last read ";
+        strout += String(float(lheLevels.near.time_since_read)/1000.0);
+        strout += " seconds ago";
+
+        serialOut.println(strout);
+        strout = "";
+
+        strout += "Far level = ";
+        strout += String(lheLevels.far.level);
+        strout += " cm. Last read ";
+        strout += String(float(lheLevels.far.time_since_read)/1000.0);
+        strout += " seconds ago";
+
+        serialOut.println(strout);
+        strout = "";
+        levelProbes.apply_current(eHeliumLevels,0.00);
+        timer = millis()%period;
     }
-    timer = millis()%period;
+    else{
+        timer = millis()%period;
+    }
 
 
 }

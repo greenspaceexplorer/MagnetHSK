@@ -81,7 +81,9 @@ struct sHSKBoardTemp
 //*****    eHeliumLevelNear = 0x21, eHeliumLevelFar = 0x22
 struct sHeliumLevel
 {
-    uint16_t level;  //  12 bits ADC, far side level sensor
+    float level;  //  12 bits ADC, far side level sensor
+    uint32_t time_since_read;
+    uint8_t error;
 } __attribute__((packed));
 // subhsk_id=0x02, commands associated with this struct:
 //*****    eHeliumLevels = 0x1B,
