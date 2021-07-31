@@ -4,15 +4,16 @@
 #include <Arduino.h>
 #include <Core_protocol.h>
 #include <map>
-/*******************************************************************************
- * Magnet housekeeping commands
- *******************************************************************************/
 
 // update these if you change anything below
 #define FIRST_LOCAL_COMMAND 2 // value of hdr->cmd that is the first command local to the board
-#define NUM_LOCAL_CONTROLS 37 // how many commands total are local to the board
+#define NUM_LOCAL_CONTROLS 38 // how many commands total are local to the board
 #define NUM_TEMP_PROBES 10 // number of external OneWire temperature probes
 
+
+/*******************************************************************************
+ * Magnet housekeeping commands
+ *******************************************************************************/
 typedef enum MagnetHSK_cmd
 {
     // 2-248 are board-specific: these are test commands

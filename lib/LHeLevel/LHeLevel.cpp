@@ -74,12 +74,10 @@ void LHeLevel::setup(uint32_t period)
     dacI2C->write(dacData);
     dacI2C->endTransmission();
     
-    Serial.println("Probe setup...");
     // begin with a read cycle
     // delay(10);
     // read_cycle(); 
 
-    // Serial.println("Probe setup cycle...");
 }
 
 sHeliumLevel LHeLevel::read(uint8_t id)
@@ -129,7 +127,6 @@ void LHeLevel::read_cycle()
     // start cycle if it was not previously busy 
     if(!cycle_busy)
     {
-        Serial.println("Start cycle...");
         // start the cycle timer and busy signal
         cycle_start = millis();
         cycle_busy = true;
@@ -156,7 +153,6 @@ void LHeLevel::read_cycle()
     // Continue deicing for tdeice milliseconds, then apply read current
     if(bdeice && cycle_timer < tdeice)
     {
-        Serial.println("Deicing...");
         return;
     }
     else if( bdeice && cycle_timer > tdeice)
@@ -168,11 +164,9 @@ void LHeLevel::read_cycle()
     // read level adcs and continue averaging until the cycle period is over
     if(cycle_timer < cycle_period)
     {
-        Serial.println("Reading...");
         switch (cycle_probe)
         {
         case eHeliumLevelNear:
-            Serial.println("Reading near probe...");
             nearIMON = current_adc(eHeliumLevelNear);
             nearADC = level_adc(eHeliumLevelNear);
             if(near_cycle_level == 0.0) near_cycle_level = lhe_level(nearADC,nearIMON);
@@ -180,17 +174,13 @@ void LHeLevel::read_cycle()
             near_cycle_level /= 2.0;
             break;
         case eHeliumLevelFar:
-            Serial.println("Reading far probe...");
             farIMON = current_adc(eHeliumLevelFar);
             farADC = level_adc(eHeliumLevelFar);
             if(far_cycle_level == 0.0) far_cycle_level = lhe_level(farADC,farIMON);
             far_cycle_level += lhe_level(farADC,farIMON);
             far_cycle_level /= 2.0;
-            Serial.println(near_cycle_level);
-            Serial.println(far_cycle_level);
             break;
         case eHeliumLevels:
-            Serial.println("Reading both probes...");
             nearIMON = current_adc(eHeliumLevelNear);
             delay(1);
             nearADC = level_adc(eHeliumLevelNear);
@@ -206,16 +196,12 @@ void LHeLevel::read_cycle()
             if(far_cycle_level == 0.0) far_cycle_level = lhe_level(farADC,farIMON);
             far_cycle_level += lhe_level(farADC,farIMON);
             far_cycle_level /= 2.0;
-            Serial.println(near_cycle_level);
-            Serial.println(far_cycle_level);
             break;
         default:
             break;
         }
-        Serial.println("Returning from read...");
         return;
     }
-    Serial.println("Finishing up...");
     // always finish with this
     
     // deenergize level probes
@@ -268,43 +254,32 @@ bool LHeLevel::toggle_deice()
 
 uint16_t LHeLevel::current_adc(uint8_t id)
 {
-    Serial.println("Reading IMON...");
     uint16_t out = error;
     switch (id)
     {
     case eHeliumLevelNear:
-        Serial.println("Reading near IMON...");
         out = analogRead(nearIMON);
-        Serial.print("Near IMON = ");
         break;
     case eHeliumLevelFar:
-        Serial.println("Reading far IMON...");
         out = analogRead(farIMON);
-        Serial.print("Far IMON = ");
         break;
     default:
-        Serial.println("IMON id error...");
         break;
     }
-    Serial.println(out);
     return out;
 }
 uint16_t LHeLevel::level_adc(uint8_t id)
 {
-    Serial.println("Reading level ADC...");
     uint16_t out = error;
     switch (id)
     {
     case eHeliumLevelNear:
-        Serial.println("Reading near ADC...");
         out = analogRead(nearADC);
         break;
     case eHeliumLevelFar:
-        Serial.println("Reading far ADC...");
         out = analogRead(farADC);
         break;
     default:
-        Serial.println("Read level ADC error...");
         break;
     }
     return out;
