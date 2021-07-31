@@ -90,17 +90,6 @@ uint16_t currentPacketCount = 0;
 // static_assert(sizeof(float) == 4);
 unsigned long timelastpacket; //for TestMode
 
-/* Variables for readout of magnet sensors */
-uint32_t ADCLHeFar[1];
-uint32_t ADCLHeNear[1];
-sHeliumLevels *helium;
-uint16_t helium_a[2] = {0};
-uint32_t magnetrtds_a[6] = {0};
-sMagnetFlows *magnetflows;
-uint64_t magnetflows_a[64] = {0};
-sMagnetPressure *magnetpressure;
-uint64_t magnetpressure_a[2] = {0};
-
 const int thermalPin = 38;
 
 /* SENSOR STATES AND VARS */
@@ -115,12 +104,21 @@ housekeeping_hdr_t *packet_fake_hdr = (housekeeping_hdr_t *)packet_fake; // fake
 /* MAGNET HOUSEKEEPING GLOBAL VARS */
 
 // level probes
-LHeLevel levelsNear_device;
-LHeLevel levelsFar_device;
+uint8_t LHeI2Cbus = 1;
+uint8_t LHeNearADC = A5;
+uint8_t LHeNearIMON = A7;
+uint8_t LHeFarADC  = A4;
+uint8_t LHeFarIMON = A6;
+uint8_t LHeCLR = PB_4;
+TwoWire LHeI2C(LHeI2Cbus); 
+LHeLevel levelProbes(LHeI2C, LHeNearADC, LHeNearIMON, LHeFarADC, LHeFarIMON,LHeCLR);
+
+sHeliumLevel lnear,lfar;
 sHeliumLevels  lheLevels;
 
 // gp50 analog pressure transducer
 AnalogPressure gp50(160, A0, 12);
+sMagnetPressure magnetpressure;
 
 // flow meters
 uint16_t timeout = 100;
@@ -161,35 +159,48 @@ void setup()
     // initialize packet communication
     setupPackets(serialOut); 
 
+    serialOut.println("Serial comms active...");
     // initialize flow meters
     stackFlow_device.setup();
     shieldFlow_device.setup();
     
     // initialize magnet RTDs
     magnetRTD_device.setup();
-    
 
-    // setup an LED for blinnkery
+    // adc read resolution
+    analogReadResolution(gp50.getADCbits());
+    
+    // initialize level probes
+    levelProbes.setup(20000);
+
+    // setup an LED for blinkery
+    pinMode(RED_LED, INPUT);
+    digitalWrite(RED_LED,LOW);
     pinMode(GREEN_LED, OUTPUT);
     digitalWrite(GREEN_LED, LOW);
     pinMode(BLUE_LED, OUTPUT);
     digitalWrite(BLUE_LED, LOW);
-
-    analogReadResolution(gp50.getADCbits());
     
     // serialOut.println("\n***RESTART***"); // DEBUG
     
     serialOut.println("ts,tns,bs,bns,s1,s2,st_pr,st_tmp,st_vfl,st_mfl,sh_pr,sh_tmp,sh_vfl,sh_mfl");
 }
 
-uint timer0 = 0,timer1 = 0, offset1 = 5000, period = 10000;
+
+uint timer0 = 0,timer1 = 0;
 uint8_t val;
+
+uint16_t nearIMON,farIMON,nearADC,farADC;
+float near,far;
+uint64_t timer = 0, period = 1000;
+String strout = "", comma = ", ";
 
 void loop()
 {
     // Blink an LED so we know the board is running
     blinkLED(BLUE_LED,1000);
     
+
 
    if (millis() % period < timer0)
    {
@@ -245,6 +256,51 @@ void loop()
 //         // Sends out an error packet if incoming packet was not able to be successfully processed.
 //         badPacketReceived(&downStream1);
 //     }
+
+    // update level probe object for timing
+    // levelProbes.update();
+    // do something periodically
+    if(millis()%period < timer)
+    {
+
+        levelProbes.apply_current(eHeliumLevels,0.02);
+        delay(10);
+        
+        nearIMON = levelProbes.current_adc(eHeliumLevelNear);
+        nearADC  = levelProbes.level_adc(eHeliumLevelNear);
+        near = levelProbes.lhe_level(nearADC,nearIMON);
+        levelProbes.set_level(near,0,eHeliumLevelNear);
+        farIMON = levelProbes.current_adc(eHeliumLevelFar);
+        farADC  = levelProbes.level_adc(eHeliumLevelFar);
+        far = levelProbes.lhe_level(farADC,farIMON);
+        levelProbes.set_level(far,0,eHeliumLevelFar);
+
+        
+        lheLevels = levelProbes.read();
+        strout += "Near level = ";
+        strout += String(lheLevels.near.level);
+        strout += " cm. Last read ";
+        strout += String(float(lheLevels.near.time_since_read)/1000.0);
+        strout += " seconds ago";
+
+        serialOut.println(strout);
+        strout = "";
+
+        strout += "Far level = ";
+        strout += String(lheLevels.far.level);
+        strout += " cm. Last read ";
+        strout += String(float(lheLevels.far.time_since_read)/1000.0);
+        strout += " seconds ago";
+
+        serialOut.println(strout);
+        strout = "";
+        levelProbes.apply_current(eHeliumLevels,0.00);
+        timer = millis()%period;
+    }
+    else{
+        timer = millis()%period;
+    }
+
 }
 
 /*******************************************************************************
@@ -879,11 +935,8 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
         break;
     }
     case eHeliumLevels:
-        ADCLHeFar[0] = analogRead(A4);
-        ADCLHeNear[0] = analogRead(A5);
-        helium->far = (uint16_t)ADCLHeFar[0];
-        helium->near = (uint16_t)ADCLHeNear[0];
-        memcpy(buffer, (uint8_t *)helium, sizeof(sHeliumLevels));
+        lheLevels = levelProbes.read();
+        memcpy(buffer, (uint8_t *)&lheLevels, sizeof(sHeliumLevels));
         retval = sizeof(sHeliumLevels);
         break;
     case eWhisperBoth:
@@ -897,8 +950,8 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     case ePressure:
     {
         uint16_t localPressure = gp50.readADC();
-        magnetpressure->Pressure = localPressure;
-        memcpy(buffer, magnetpressure, sizeof(sMagnetPressure));
+        magnetpressure.pressure = localPressure;
+        memcpy(buffer,(uint8_t *)&magnetpressure, sizeof(sMagnetPressure));
         retval = sizeof(sMagnetPressure);
         break;
     }
@@ -927,13 +980,12 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
         boardTemp.temperature = (float)(1475 - ((2475 * TempRead) / 4096)) / 10;
         magnetAll.hskBoardTemp = boardTemp;
         
-        lheLevels.near = levelsNear_device.read();
-        lheLevels.far = levelsFar_device.read();
+        lheLevels = levelProbes.read();
         magnetAll.heliumLevels = lheLevels;
         
         uint16_t localPressure = gp50.readADC();
-        magnetpressure->Pressure = localPressure;
-        magnetAll.magnetPressure =  *magnetpressure;
+        magnetpressure.pressure = localPressure;
+        magnetAll.magnetPressure =  magnetpressure;
 
         magnetAll.magnetRTDs =  magnetRTD_device.readAll(eRTDallOhms);
 
