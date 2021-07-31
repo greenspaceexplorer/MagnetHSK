@@ -13,7 +13,7 @@
 #include <configConstants.h>
 #include <configFunctions.h>
 #include <supportFunctions.h>
-#include <TemperatureProbe.h>
+#include <HelixOneWire.h>
 
 #include "driverlib/uart.h"
 #include "inc/hw_memmap.h"

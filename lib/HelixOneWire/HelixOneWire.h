@@ -53,6 +53,7 @@
 
 // Board-specific macros for direct GPIO
 #include "util/OneWire_direct_regtype.h"
+#include <MagnetHSK_protocol.h>
 
 class HelixOneWire
 {
@@ -69,8 +70,15 @@ class HelixOneWire
 #endif
 
   public:
-    HelixOneWire() { }
-    HelixOneWire(uint8_t pin) { begin(pin); }
+    HelixOneWire();
+    HelixOneWire(uint8_t pin);
+    
+    sTempProbe read(uint8_t cmd);
+    sTempProbeAll readAll();
+    
+    // commands all onewire probes on bus to begin temperature conversion
+    void convertAll();
+    
     void begin(uint8_t pin);
 
     // Perform a 1-Wire reset cycle. Returns 1 if a device responds
