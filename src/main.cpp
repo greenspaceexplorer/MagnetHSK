@@ -12,17 +12,12 @@
 #include <MagnetHSK.h>
 #include <MagnetPacket.h>
 
+
 /*******************************************************************************
  * Function Declarations
  *******************************************************************************/
-
-void blinkLED(uint8_t LED, uint period);
-void serialPrint(HardwareSerial &readPort, HardwareSerial &printPort);
-void printFlow(sMagnetFlow &flow, HardwareSerial &printPort);
-void printRTDtemps(sMagnetRTDAll &rtds, HardwareSerial &printPort);
-void printRTDresists(sMagnetRTDAll &rtds, HardwareSerial &printPort);
-void periodicPacket(housekeeping_hdr_t *hsk_header,uint period);
-
+void serialCSVheader();
+void serialCSVoutput();
 /*******************************************************************************
  * Global Variables 
  *******************************************************************************/
@@ -42,8 +37,11 @@ housekeeping_hdr_t *hdr_in;
 housekeeping_hdr_t *hdr_out;
 housekeeping_err_t *hdr_err;
 housekeeping_prio_t *hdr_prio;
-/* Memory buffers for housekeeping system functions */
+
 uint8_t numDevices = 0; // Keep track of how many devices are upstream
+/*******************************************************************************
+ * Magnet housekeeping command priorities
+ *******************************************************************************/
 uint8_t commandPriority[NUM_LOCAL_CONTROLS] = {
     0, // eTopStackRTDohms
     0, // eTopNonStackRTDohms
@@ -51,14 +49,17 @@ uint8_t commandPriority[NUM_LOCAL_CONTROLS] = {
     0, // eBottomNonStackRTDohms
     0, // eShieldRTD1ohms
     0, // eShieldRTD2ohms
-    0, // eTopStackRTDtemp
-    0, // eTopNonStackRTDtemp
-    0, // eBottomStackRTDtemp
-    0, // eBottomNonStackRTDtemp
-    0, // eShieldRTD1temp
-    0, // eShieldRTD2temp
+    0, // eTopStackRTDcels
+    0, // eTopNonStackRTDcels
+    0, // eBottomStackRTDcels
+    0, // eBottomNonStackRTDcels
+    0, // eShieldRTD1cels
+    0, // eShieldRTD2cels
+    0, // eRTDallOhms
+    0, // eRTDallCels
     0, // eWhisperStack
     0, // eWhisperShield
+    0, // eWhisperBoth
     0, // eTempProbe1
     0, // eTempProbe2
     0, // eTempProbe3
@@ -69,14 +70,17 @@ uint8_t commandPriority[NUM_LOCAL_CONTROLS] = {
     0, // eTempProbe8
     0, // eTempProbe9
     0, // eTempProbe10
-    0, // ePressureRegular
-    0, // eHeliumLevels
-    0, // eRTDall
-    0, // eWhisperBoth
+    0, // eTempProbeAll
     0, // ePressure
-    0, // eISR
+    0, // ePressureAlt
+    0, // eHeliumLevelNear
+    0, // eHeliumLevelFar
+    0, // eHeliumLevels
     0, // eMagField
-    0  // eALL
+    0, // eRTDall
+    0, // eISR
+    0, // eALL
+    0  // eTest
 };     // Each command's priority takes up one byte
 
 PacketSerial *serialDevices = &downStream1;
@@ -86,40 +90,41 @@ uint8_t addressList = 0; // List of all downstream devices
 size_t hdr_size = sizeof(housekeeping_hdr_t) / sizeof(hdr_out->src); // size of the header
 uint8_t numSends = 0;                                                // Used to keep track of number of priority commands executed
 uint16_t currentPacketCount = 0;
-// static_assert(sizeof(float) == 4);
+
 unsigned long timelastpacket; //for TestMode
 
-/* Variables for readout of magnet sensors */
-uint32_t ADCLHeFar[1];
-uint32_t ADCLHeNear[1];
-sHeliumLevels *helium;
-uint16_t helium_a[2] = {0};
-uint32_t magnetrtds_a[6] = {0};
-sMagnetFlows *magnetflows;
-uint64_t magnetflows_a[64] = {0};
-sMagnetPressure *magnetpressure;
-uint64_t magnetpressure_a[2] = {0};
-
-const int thermalPin = 38;
-
-/* SENSOR STATES AND VARS */
-uint32_t TempRead = 0;
-// for Launchpad LED example of timer used for reading sensors without holding uC attention
-bool is_high = true;
-
 // Declarations for periodic packet
-uint8_t packet_fake[5] = {0}; // array for using existing functions to implement command and send packet.
+uint8_t packet_fake[5] = {0};                                            // array for using existing functions to implement command and send packet.
 housekeeping_hdr_t *packet_fake_hdr = (housekeeping_hdr_t *)packet_fake; // fakehdr is best way to send a packet
 
 /* MAGNET HOUSEKEEPING GLOBAL VARS */
 
+// on board temperature sensor
+uint32_t TempRead = 0;
+
 // level probes
-LHeLevel levelsNear_device;
-LHeLevel levelsFar_device;
-sHeliumLevels  lheLevels;
+uint8_t LHeI2Cbus = 1;
+uint8_t LHeNearADC = A5;
+uint8_t LHeNearIMON = A7;
+uint8_t LHeFarADC = A4;
+uint8_t LHeFarIMON = A6;
+uint8_t LHeCLR = PB_4;
+TwoWire LHeI2C(LHeI2Cbus);
+LHeLevel levelProbes(LHeI2C, LHeNearADC, LHeNearIMON, LHeFarADC, LHeFarIMON, LHeCLR);
+
+sHeliumLevel lnear, lfar;
+sHeliumLevels lheLevels;
+
+uint16_t nearIMON, farIMON, nearADC, farADC;
+float near, far;
+
+ulong lfar_timer, lfar_period = 20000;
+ulong lfar_cycle_timer, lfar_cycle_period = 2000;
+bool lfar_busy = false;
 
 // gp50 analog pressure transducer
 AnalogPressure gp50(160, A0, 12);
+sMagnetPressure magnetpressure;
 
 // flow meters
 uint16_t timeout = 100;
@@ -128,11 +133,9 @@ MagnetWhisper shieldFlow_device(Serial1, timeout);
 sMagnetFlow stackFlow;
 sMagnetFlow shieldFlow;
 sMagnetFlows bothFlow;
-
-// internal RTDs
 SPIClass RTDSPI(0);
 uint8_t RTDSPI_SCK = 11;
-uint8_t RTDSPI_CS  = 12;
+uint8_t RTDSPI_CS = 12;
 uint8_t RTDSPI_MOSI = 8;
 uint8_t RTDSPI_MISO = 13;
 
@@ -141,16 +144,21 @@ sMagnetRTDAll magnetRTDAll;
 sMagnetRTD magnetRTD;
 
 // OneWire temperature probes
-TemperatureProbe tempProbe_device;
+HelixOneWire oneWire(PB_3);
 sTempProbeAll tempProbeAll;
 sTempProbe tempProbe;
 
 // Set output serial port
-HardwareSerial &serialOut = Serial; // computer (DEBUG)
-// HardwareSerial &serialOut = Serial3; // MainHSK
+// HardwareSerial &serialOut = Serial; // computer (DEBUG)
+HardwareSerial &serialOut = Serial3; // MainHSK
 
 // Setup for reading all active devices
 sMagnetAll magnetAll;
+
+// timers
+ulong readout_period = 10000, levelprobes_period = 30000;
+ulong readout_timer, levelprobes_timer;
+bool readout_b, levelprobes_b;
 
 /*******************************************************************************
 * Main program
@@ -158,32 +166,51 @@ sMagnetAll magnetAll;
 void setup()
 {
     // initialize packet communication
-    setupPackets(serialOut); 
+    setupPackets(serialOut);
 
     // initialize flow meters
     stackFlow_device.setup();
     shieldFlow_device.setup();
-    
+
     // initialize magnet RTDs
     magnetRTD_device.setup();
-    
 
-    // setup an LED for blinnkery
+    // adc read resolution
+    analogReadResolution(gp50.getADCbits());
+
+    // initialize level probes
+    // levelProbes.setup(20000);
+
+    // setup an LED for blinkery
+    pinMode(RED_LED, INPUT);
+    digitalWrite(RED_LED, LOW);
     pinMode(GREEN_LED, OUTPUT);
     digitalWrite(GREEN_LED, LOW);
     pinMode(BLUE_LED, OUTPUT);
     digitalWrite(BLUE_LED, LOW);
 
-    analogReadResolution(gp50.getADCbits());
-    
-    // serialOut.println("\n***RESTART***"); // DEBUG
+    // csv output
+    // serialCSVheader();
+
+    // start level probe timer;
+    lfar_timer = millis();
 }
+
+uint64_t timer = 0, period = 1000;
+String strout = "", comma = ", ";
 
 void loop()
 {
     // Blink an LED so we know the board is running
-    blinkLED(BLUE_LED,1000);
+    blinkLED(BLUE_LED, 1000);
+    // csv output
+    // serialCSVoutput();
 
+    
+    
+    //
+    // BEGIN PACKET CODE
+    //
     packet_fake_hdr->dst = myID;
     packet_fake_hdr->src = eSFC;
     packet_fake_hdr->len = 0;         // this should always be 0, especially because the array is just enough to hold the header.
@@ -195,148 +222,82 @@ void loop()
     /* PacketSerial.update() reads and processes incoming packets.
       Returns 0 if it successfully processed the packet.
       Returns nonzero error code if it does not. */
-    // if (downStream1.update() != 0)
-    // {
-    //     // Sends out an error packet if incoming packet was not able to be successfully processed.
-    //     badPacketReceived(&downStream1);
-    // }
+    if (downStream1.update() != 0)
+    {
+        // Sends out an error packet if incoming packet was not able to be successfully processed.
+        badPacketReceived(&downStream1);
+    }
+    //
+    // END PACKET CODE
+    //
 }
+
 
 /*******************************************************************************
- * Testing functions
+* Serial output (do not run with packets)
  *******************************************************************************/
-
-// blinks an LED with given period
-void blinkLED(uint8_t LED, uint period)
+void serialCSVheader()
 {
-    static uint BlinkUpdateTime = 0;
-    static bool state = true;
 
-    if (millis() % period < BlinkUpdateTime)
+    // serialOut.println("\n***RESTART***"); // DEBUG
+    printRtdResistHdr(serialOut);
+    serialOut.print(", ");
+    printFlowHdr("st", serialOut);
+    serialOut.print(", ");
+    printFlowHdr("sh", serialOut);
+    serialOut.print(", ");
+    serialOut.print("level_far");
+    serialOut.print(", ");
+    serialOut.println("level_far_dt");
+}
+void serialCSVoutput()
+{
+    if (millis() - timer > period)
     {
-        if (state)
-        {
-            state = !state;
-            digitalWrite(LED, LOW);
-        }
-        else
-        {
-            state = !state;
-            digitalWrite(LED, HIGH);
-        }
+        magnetRTDAll = magnetRTD_device.readAll(eRTDallOhms);
+        delay(100);
+        stackFlow = stackFlow_device.read();
+        delay(100);
+        shieldFlow = shieldFlow_device.read();
+        
+        delay(100);
+        printRtdResist(magnetRTDAll,serialOut);
+        serialOut.print(", ");
+        printFlow(stackFlow,serialOut);
+        serialOut.print(", ");
+        printFlow(shieldFlow,serialOut);
+        serialOut.print(", ");
+        serialOut.print(lfar.level);
+        serialOut.print(", ");
+        serialOut.print(millis() - lfar_timer);
+        serialOut.println();
+
+        timer = millis();
+        Serial.println(millis() -lfar_timer);
+        Serial.println(millis() -lfar_timer > lfar_period || lfar_busy);
     }
-    BlinkUpdateTime = millis() % period;
-}
-// Prints out flow meter readout in printPort
-void printFlow(sMagnetFlow &flow, HardwareSerial &printPort)
-{
-    String pressure("\nPressure = ");
-    pressure += String(flow.pressure);
-    pressure += String(" psia");
-    printPort.println(pressure);
-
-    String temp("Temperature = ");
-    temp += String(flow.temperature);
-    temp += String(" deg C");
-    printPort.println(temp);
-
-    String vol("Volumetric Flow = ");
-    vol += String(flow.volume);
-    vol += String(" slpm");
-    printPort.println(vol);
-
-    String mass("Mass Flow = ");
-    mass += String(flow.mass);
-    mass += String(" slpm");
-    printPort.println(mass);
-}
-
-// Prints out magnet RTD temperatures in printPort
-void printRTDtemps(sMagnetRTDAll &rtds, HardwareSerial &printPort)
-{
-    String units(" deg C");
-
-    String ts("\nTop Stack = ");
-    ts += String(rtds.top_stack);
-    ts += units;
-    printPort.println(ts);
-    
-    String tns("Top Non Stack = ");
-    tns += String(rtds.top_nonstack);
-    tns += units;
-    printPort.println(tns);
-
-    String bs("Bottom Stack = ");
-    bs += String(rtds.btm_stack);
-    bs += units;
-    printPort.println(bs);
-
-    String bns("Bottom Non Stack = ");
-    bns += String(rtds.btm_nonstack);
-    bns += units;
-    printPort.println(bns);
-    
-    String s1("Shield 1 = ");
-    s1 += String(rtds.shield1);
-    s1 += units;
-    printPort.println(s1);
-    
-    String s2("Shield 2 = ");
-    s2 += String(rtds.shield1);
-    s2 += units;
-    printPort.println(s2);
-}
-
-// Prints out magnet RTD temperatures in printPort
-void printRTDresists(sMagnetRTDAll &rtds, HardwareSerial &printPort)
-{
-    String units(" Ohms");
-
-    String ts("\nTop Stack = ");
-    ts += String(rtds.top_stack);
-    ts += units;
-    printPort.println(ts);
-    
-    String tns("Top Non Stack = ");
-    tns += String(rtds.top_nonstack);
-    tns += units;
-    printPort.println(tns);
-
-    String bs("Bottom Stack = ");
-    bs += String(rtds.btm_stack);
-    bs += units;
-    printPort.println(bs);
-
-    String bns("Bottom Non Stack = ");
-    bns += String(rtds.btm_nonstack);
-    bns += units;
-    printPort.println(bns);
-    
-    String s1("Shield 1 = ");
-    s1 += String(rtds.shield1);
-    s1 += units;
-    printPort.println(s1);
-    
-    String s2("Shield 2 = ");
-    s2 += String(rtds.shield1);
-    s2 += units;
-    printPort.println(s2);
-}
-
-// Prints out anything from readPort into printPort
-void serialPrint(HardwareSerial &readPort, HardwareSerial &printPort)
-{
-    if (readPort.available())
+    if(millis() - lfar_timer > lfar_period || lfar_busy)
     {
-        uint8_t readout = readPort.read();
-        printPort.print(readout);
-        printPort.print(" ");
-        serialPrint(readPort, printPort);
+        levelProbes.apply_current(eHeliumLevelFar,0.065);
+        if(!lfar_busy) lfar_cycle_timer = millis();
+        lfar_busy = true;
+        if(millis() - lfar_cycle_timer > lfar_cycle_period)
+        {
+            farIMON = levelProbes.current_adc(eHeliumLevelFar);
+            farADC  = levelProbes.level_adc(eHeliumLevelFar);
+            lfar.level = levelProbes.lhe_level(farADC,farIMON);
+            levelProbes.apply_current(eHeliumLevels, 0.0);
+            lfar_busy = false;
+        }
+
+        lfar_timer = millis();
     }
 }
 /*******************************************************************************
  * Packet sending/receiving routines
  *******************************************************************************/
+
+
 void setupPackets(HardwareSerial &downStreamPort)
 {
     // Serial port for downstream to Main HSK
@@ -349,7 +310,7 @@ void setupPackets(HardwareSerial &downStreamPort)
     currentPacketCount = 0;
 }
 
-void periodicPacket(housekeeping_hdr_t *hsk_header,uint period)
+void periodicPacket(housekeeping_hdr_t *hsk_header, uint period)
 {
     static uint PacketUpdateTime = 0;
 
@@ -674,107 +635,77 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     /* Temperature probes */
     case eTempProbe1:
     {
-        tempProbe = tempProbe_device.read(localCommand);
+        tempProbe = oneWire.read(1);
         memcpy(buffer, (uint8_t *)&tempProbe, sizeof(tempProbe));
         retval = (int)sizeof(tempProbe);
-//        float TempRead = tempSensorVal(1, thermalPin);
-//        memcpy(buffer, (uint8_t *)&TempRead, sizeof(TempRead));
-//        retval = (int)sizeof(TempRead);
         break;
     }
     case eTempProbe2:
     {
-        tempProbe = tempProbe_device.read(localCommand);
+        tempProbe = oneWire.read(2);
         memcpy(buffer, (uint8_t *)&tempProbe, sizeof(tempProbe));
         retval = (int)sizeof(tempProbe);
-//        float TempRead = tempSensorVal(2, thermalPin);
-//        memcpy(buffer, (uint8_t *)&TempRead, sizeof(TempRead));
-//        retval = (int)sizeof(TempRead);
         break;
     }
     case eTempProbe3:
     {
-        tempProbe = tempProbe_device.read(localCommand);
+        tempProbe = oneWire.read(3);
         memcpy(buffer, (uint8_t *)&tempProbe, sizeof(tempProbe));
         retval = (int)sizeof(tempProbe);
-//        float TempRead = tempSensorVal(3, thermalPin);
-//        memcpy(buffer, (uint8_t *)&TempRead, sizeof(TempRead));
-//        retval = (int)sizeof(TempRead);
         break;
     }
     case eTempProbe4:
     {
-        tempProbe = tempProbe_device.read(localCommand);
+        tempProbe = oneWire.read(4);
         memcpy(buffer, (uint8_t *)&tempProbe, sizeof(tempProbe));
         retval = (int)sizeof(tempProbe);
-//        float TempRead = tempSensorVal(4, thermalPin);
-//        memcpy(buffer, (uint8_t *)&TempRead, sizeof(TempRead));
-//        retval = (int)sizeof(TempRead);
         break;
     }
     case eTempProbe5:
     {
-        tempProbe = tempProbe_device.read(localCommand);
+        tempProbe = oneWire.read(5);
         memcpy(buffer, (uint8_t *)&tempProbe, sizeof(tempProbe));
         retval = (int)sizeof(tempProbe);
-//        float TempRead = tempSensorVal(5, thermalPin);
-//        memcpy(buffer, (uint8_t *)&TempRead, sizeof(TempRead));
-//        retval = (int)sizeof(TempRead);
         break;
     }
     case eTempProbe6:
     {
-        tempProbe = tempProbe_device.read(localCommand);
+        tempProbe = oneWire.read(6);
         memcpy(buffer, (uint8_t *)&tempProbe, sizeof(tempProbe));
         retval = (int)sizeof(tempProbe);
-//        float TempRead = tempSensorVal(6, thermalPin);
-//        memcpy(buffer, (uint8_t *)&TempRead, sizeof(TempRead));
-//        retval = (int)sizeof(TempRead);
         break;
     }
     case eTempProbe7:
     {
-        tempProbe = tempProbe_device.read(localCommand);
+        tempProbe = oneWire.read(7);
         memcpy(buffer, (uint8_t *)&tempProbe, sizeof(tempProbe));
         retval = (int)sizeof(tempProbe);
-//        float TempRead = tempSensorVal(7, thermalPin);
-//        memcpy(buffer, (uint8_t *)&TempRead, sizeof(TempRead));
-//        retval = (int)sizeof(TempRead);
         break;
     }
     case eTempProbe8:
     {
-        tempProbe = tempProbe_device.read(localCommand);
+        tempProbe = oneWire.read(8);
         memcpy(buffer, (uint8_t *)&tempProbe, sizeof(tempProbe));
         retval = (int)sizeof(tempProbe);
-//        float TempRead = tempSensorVal(8, thermalPin);
-//        memcpy(buffer, (uint8_t *)&TempRead, sizeof(TempRead));
-//        retval = (int)sizeof(TempRead);
         break;
     }
     case eTempProbe9:
     {
-        tempProbe = tempProbe_device.read(localCommand);
+        tempProbe = oneWire.read(9);
         memcpy(buffer, (uint8_t *)&tempProbe, sizeof(tempProbe));
         retval = (int)sizeof(tempProbe);
-//        float TempRead = tempSensorVal(9, thermalPin);
-//        memcpy(buffer, (uint8_t *)&TempRead, sizeof(TempRead));
-//        retval = (int)sizeof(TempRead);
         break;
     }
     case eTempProbe10:
     {
-        tempProbe = tempProbe_device.read(localCommand);
+        tempProbe = oneWire.read(10);
         memcpy(buffer, (uint8_t *)&tempProbe, sizeof(tempProbe));
         retval = (int)sizeof(tempProbe);
-//        float TempRead = tempSensorVal(10, thermalPin);
-//        memcpy(buffer, (uint8_t *)&TempRead, sizeof(TempRead));
-//        retval = (int)sizeof(TempRead);
         break;
     }
     case eTempProbeAll:
     {
-        tempProbeAll = tempProbe_device.readAll();
+        tempProbeAll = oneWire.readAll();
         memcpy(buffer, (uint8_t *)&tempProbeAll, sizeof(tempProbeAll));
         retval = (int)sizeof(tempProbeAll);
         break;
@@ -785,11 +716,8 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
         break;
     }
     case eHeliumLevels:
-        ADCLHeFar[0] = analogRead(A4);
-        ADCLHeNear[0] = analogRead(A5);
-        helium->far = (uint16_t)ADCLHeFar[0];
-        helium->near = (uint16_t)ADCLHeNear[0];
-        memcpy(buffer, (uint8_t *)helium, sizeof(sHeliumLevels));
+        lheLevels = levelProbes.read();
+        memcpy(buffer, (uint8_t *)&lheLevels, sizeof(sHeliumLevels));
         retval = sizeof(sHeliumLevels);
         break;
     case eWhisperBoth:
@@ -803,8 +731,8 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
     case ePressure:
     {
         uint16_t localPressure = gp50.readADC();
-        magnetpressure->Pressure = localPressure;
-        memcpy(buffer, magnetpressure, sizeof(sMagnetPressure));
+        magnetpressure.pressure = localPressure;
+        memcpy(buffer, (uint8_t *)&magnetpressure, sizeof(sMagnetPressure));
         retval = sizeof(sMagnetPressure);
         break;
     }
@@ -832,18 +760,17 @@ int handleLocalRead(uint8_t localCommand, uint8_t *buffer)
         uint32_t TempRead = analogRead(TEMPSENSOR);
         boardTemp.temperature = (float)(1475 - ((2475 * TempRead) / 4096)) / 10;
         magnetAll.hskBoardTemp = boardTemp;
-        
-        lheLevels.near = levelsNear_device.read();
-        lheLevels.far = levelsFar_device.read();
+
+        lheLevels = levelProbes.read();
         magnetAll.heliumLevels = lheLevels;
-        
+
         uint16_t localPressure = gp50.readADC();
-        magnetpressure->Pressure = localPressure;
-        magnetAll.magnetPressure =  *magnetpressure;
+        magnetpressure.pressure = localPressure;
+        magnetAll.magnetPressure = magnetpressure;
 
-        magnetAll.magnetRTDs =  magnetRTD_device.readAll(eRTDallOhms);
+        magnetAll.magnetRTDs = magnetRTD_device.readAll(eRTDallOhms);
 
-        magnetAll.tempProbeAll = tempProbe_device.readAll();
+        magnetAll.tempProbeAll = oneWire.readAll();
 
         memcpy(buffer, (uint8_t *)&magnetAll, sizeof(magnetAll));
         retval = sizeof(magnetAll);

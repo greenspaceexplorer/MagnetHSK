@@ -4,64 +4,67 @@
 #include <Arduino.h>
 #include <Core_protocol.h>
 #include <map>
-/*******************************************************************************
- * Magnet housekeeping commands
- *******************************************************************************/
 
 // update these if you change anything below
 #define FIRST_LOCAL_COMMAND 2 // value of hdr->cmd that is the first command local to the board
-#define NUM_LOCAL_CONTROLS 35 // how many commands total are local to the board
-#define NUM_TEMP_PROBES 10;   // number of external OneWire temperature probes
+#define NUM_LOCAL_CONTROLS 38 // how many commands total are local to the board
+#define NUM_TEMP_PROBES 10 // number of external OneWire temperature probes
 
+
+/*******************************************************************************
+ * Magnet housekeeping commands
+ *******************************************************************************/
 typedef enum MagnetHSK_cmd
 {
     // 2-248 are board-specific: these are test commands
     // RTD resistance
-    eTopStackRTDohms = 0x02,
-    eTopNonStackRTDohms = 0x03,
-    eBottomStackRTDohms = 0x04,
+    eTopStackRTDohms       = 0x02,
+    eTopNonStackRTDohms    = 0x03,
+    eBottomStackRTDohms    = 0x04,
     eBottomNonStackRTDohms = 0x05,
-    eShieldRTD1ohms = 0x06,
-    eShieldRTD2ohms = 0x07,
+    eShieldRTD1ohms        = 0x06,
+    eShieldRTD2ohms        = 0x07,
     // RTD temperature
-    eTopStackRTDcels = 0x08,
-    eTopNonStackRTDcels = 0x09,
-    eBottomStackRTDcels = 0x0A,
+    eTopStackRTDcels       = 0x08,
+    eTopNonStackRTDcels    = 0x09,
+    eBottomStackRTDcels    = 0x0A,
     eBottomNonStackRTDcels = 0x0B,
-    eShieldRTD1cels = 0x0C,
-    eShieldRTD2cels = 0x0D,
+    eShieldRTD1cels        = 0x0C,
+    eShieldRTD2cels        = 0x0D,
     // get all RTD readings
-    eRTDallOhms = 0x30,
-    eRTDallCels = 0x31,
+    eRTDallOhms            = 0x30,
+    eRTDallCels            = 0x31,
     // flow meters
-    eWhisperStack = 0x0E,
-    eWhisperShield = 0x0F,
-    eWhisperBoth = 0x1D,
+    eWhisperStack          = 0x0E,
+    eWhisperShield         = 0x0F,
+    eWhisperBoth           = 0x1D,
     // external temperature probes
-    eTempProbe1 = 0x10,
-    eTempProbe2 = 0x11,
-    eTempProbe3 = 0x12,
-    eTempProbe4 = 0x13,
-    eTempProbe5 = 0x14,
-    eTempProbe6 = 0x15,
-    eTempProbe7 = 0x16,
-    eTempProbe8 = 0x17,
-    eTempProbe9 = 0x18,
-    eTempProbe10 = 0x19,
-    eTempProbeAll = 0x20,
+    eTempProbe1            = 0x10,
+    eTempProbe2            = 0x11,
+    eTempProbe3            = 0x12,
+    eTempProbe4            = 0x13,
+    eTempProbe5            = 0x14,
+    eTempProbe6            = 0x15,
+    eTempProbe7            = 0x16,
+    eTempProbe8            = 0x17,
+    eTempProbe9            = 0x18,
+    eTempProbe10           = 0x19,
+    eTempProbeAll          = 0x20,
     // pressure sensor(s)
-    ePressure = 0x1E,    // 4-20 mA GP:50 gauge
-    ePressureAlt = 0x1A, // heise dxd gauge
+    ePressure              = 0x1E,    // 0-5V GP:50 gauge
+    ePressureAlt           = 0x1A, // heise dxd gauge
     // LHe level probes
-    eHeliumLevels = 0x1B,
+    eHeliumLevelNear       = 0x21,
+    eHeliumLevelFar        = 0x22,
+    eHeliumLevels          = 0x1B,
     // magnetic field sensor
-    eMagField = 0x1F,
+    eMagField              = 0x1F,
     // HSK board temperature
-    eISR = 0xA0,
+    eISR                   = 0xA0,
     // All available readings
-    eALL = 0xA2,
+    eALL                   = 0xA2,
     // Test commands
-    eTest = 0x91
+    eTest                  = 0x91
 } MagnetHSK_cmd;
 
 /*******************************************************************************
@@ -76,11 +79,19 @@ struct sHSKBoardTemp
 
 /* Liquid Helium Level Sensors */
 // subhsk_id=0x02, commands associated with this struct:
+//*****    eHeliumLevelNear = 0x21, eHeliumLevelFar = 0x22
+struct sHeliumLevel
+{
+    float level;  //  12 bits ADC, far side level sensor
+    uint32_t time_since_read;
+    uint8_t error;
+} __attribute__((packed));
+// subhsk_id=0x02, commands associated with this struct:
 //*****    eHeliumLevels = 0x1B,
 struct sHeliumLevels
 {
-    uint16_t far;  //  12 bits ADC, far side level sensor
-    uint16_t near; //  12 bits ADC, Near side level sensor
+    sHeliumLevel near; //  12 bits ADC, Near side level sensor
+    sHeliumLevel far;  //  12 bits ADC, far side level sensor
 } __attribute__((packed));
 
 /* Magnet RTDs */
@@ -140,7 +151,7 @@ struct sMagnetFlows
 //*****    ePressure = 0x1E, // 4-20 mA GP:50 gauge
 struct sMagnetPressure
 {
-    uint16_t Pressure; //0-5 Vdc to ADC., Pressure Transducer pressure reading
+    uint16_t pressure; //0-5 Vdc to ADC., Pressure Transducer pressure reading
 } __attribute__((packed));
 
 // subhsk_id=0x02, commands associated with this struct:

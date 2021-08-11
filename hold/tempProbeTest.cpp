@@ -5,7 +5,7 @@ typedef uint8_t TempSensorAddress[8];
 
 void blinkLED(uint8_t LED, uint period);
 
-#define ONE_WIRE_BUS PA_2
+#define ONE_WIRE_BUS PB_3
 HelixOneWire ds(ONE_WIRE_BUS);
 TempSensorAddress temp1;
 uint8_t devices, tempCount, val;
