@@ -12,6 +12,12 @@
 #include <MagnetHSK.h>
 #include <MagnetPacket.h>
 
+
+/*******************************************************************************
+ * Function Declarations
+ *******************************************************************************/
+void serialCSVheader();
+void serialCSVoutput();
 /*******************************************************************************
  * Global Variables 
  *******************************************************************************/
@@ -143,8 +149,8 @@ sTempProbeAll tempProbeAll;
 sTempProbe tempProbe;
 
 // Set output serial port
-HardwareSerial &serialOut = Serial; // computer (DEBUG)
-// HardwareSerial &serialOut = Serial3; // MainHSK
+// HardwareSerial &serialOut = Serial; // computer (DEBUG)
+HardwareSerial &serialOut = Serial3; // MainHSK
 
 // Setup for reading all active devices
 sMagnetAll magnetAll;
@@ -173,7 +179,7 @@ void setup()
     analogReadResolution(gp50.getADCbits());
 
     // initialize level probes
-    levelProbes.setup(20000);
+    // levelProbes.setup(20000);
 
     // setup an LED for blinkery
     pinMode(RED_LED, INPUT);
@@ -182,6 +188,56 @@ void setup()
     digitalWrite(GREEN_LED, LOW);
     pinMode(BLUE_LED, OUTPUT);
     digitalWrite(BLUE_LED, LOW);
+
+    // csv output
+    // serialCSVheader();
+
+    // start level probe timer;
+    lfar_timer = millis();
+}
+
+uint64_t timer = 0, period = 1000;
+String strout = "", comma = ", ";
+
+void loop()
+{
+    // Blink an LED so we know the board is running
+    blinkLED(BLUE_LED, 1000);
+    // csv output
+    // serialCSVoutput();
+
+    
+    
+    //
+    // BEGIN PACKET CODE
+    //
+    packet_fake_hdr->dst = myID;
+    packet_fake_hdr->src = eSFC;
+    packet_fake_hdr->len = 0;         // this should always be 0, especially because the array is just enough to hold the header.
+    // packet_fake_hdr->cmd = eTest;
+    packet_fake_hdr->cmd = eALL; // which command you want on the timer goes here.
+
+    periodicPacket(packet_fake_hdr,3000);
+    
+    /* PacketSerial.update() reads and processes incoming packets.
+      Returns 0 if it successfully processed the packet.
+      Returns nonzero error code if it does not. */
+    if (downStream1.update() != 0)
+    {
+        // Sends out an error packet if incoming packet was not able to be successfully processed.
+        badPacketReceived(&downStream1);
+    }
+    //
+    // END PACKET CODE
+    //
+}
+
+
+/*******************************************************************************
+* Serial output (do not run with packets)
+ *******************************************************************************/
+void serialCSVheader()
+{
 
     // serialOut.println("\n***RESTART***"); // DEBUG
     printRtdResistHdr(serialOut);
@@ -193,22 +249,9 @@ void setup()
     serialOut.print("level_far");
     serialOut.print(", ");
     serialOut.println("level_far_dt");
-
-    // start level probe timer;
-    lfar_timer = millis();
 }
-
-uint timer0 = 0, timer1 = 0;
-uint8_t val;
-
-uint64_t timer = 0, period = 1000;
-String strout = "", comma = ", ";
-
-void loop()
+void serialCSVoutput()
 {
-    // Blink an LED so we know the board is running
-    blinkLED(BLUE_LED, 1000);
-
     if (millis() - timer > period)
     {
         magnetRTDAll = magnetRTD_device.readAll(eRTDallOhms);
@@ -250,10 +293,11 @@ void loop()
         lfar_timer = millis();
     }
 }
-
 /*******************************************************************************
  * Packet sending/receiving routines
  *******************************************************************************/
+
+
 void setupPackets(HardwareSerial &downStreamPort)
 {
     // Serial port for downstream to Main HSK
